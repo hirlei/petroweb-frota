@@ -129,8 +129,7 @@ sudo -u nginx php artisan tenant:criar serraazul --nome="Transportes Serra Azul"
 sudo -u nginx php artisan tenants:run municipios:importar --tenants=serraazul
 
 # SÓ para demonstração — empresa, filial, usuários e clientes fictícios
-sudo -u nginx php artisan tenants:run db:seed --tenants=serraazul \
-  --argument="class=Database\\Seeders\\DemonstracaoSeeder"
+sudo -u nginx php artisan demo:semear serraazul
 ```
 
 Ao final:

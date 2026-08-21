@@ -120,6 +120,9 @@ if sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'
         echo "ERRO: usuário existe mas ${CRED} não tem a senha. Recupere ou remova o usuário." >&2
         exit 1
     fi
+
+    # Idempotente: instalação antiga pode ter ficado sem o atributo.
+    sudo -u postgres psql -c "ALTER ROLE ${DB_USER} CREATEDB;" >/dev/null
 else
     DB_PASS="$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)"
     sudo -u postgres psql <<SQL
@@ -128,6 +131,12 @@ CREATE DATABASE "${DB_NAME}" OWNER ${DB_USER};
 GRANT ALL PRIVILEGES ON DATABASE "${DB_NAME}" TO ${DB_USER};
 SQL
     sudo -u postgres psql -d "${DB_NAME}" -c "GRANT ALL ON SCHEMA public TO ${DB_USER};"
+
+    # CADA TENANT É UM BANCO NOVO, e quem o cria é o stancl com ESTAS
+    # credenciais. GRANT ALL PRIVILEGES não dá esse direito — CREATEDB é
+    # atributo de role, não privilégio de banco. Sem isto, `tenant:criar`
+    # morre em "permission denied to create database".
+    sudo -u postgres psql -c "ALTER ROLE ${DB_USER} CREATEDB;"
     { echo "DB_DATABASE=${DB_NAME}"; echo "DB_USERNAME=${DB_USER}"; echo "DB_PASSWORD=${DB_PASS}"; } > "$CRED"
     chmod 600 "$CRED"
     echo "  Criado. Credenciais em ${CRED} (modo 600)."
@@ -148,7 +157,9 @@ log "Composer, .env, chave e assets"
 composer install --no-dev --optimize-autoloader --no-interaction
 
 if [ ! -f .env ]; then
-    cp .env.production.example .env
+    # O modelo é o .env.example do repositório. Não existe
+    # .env.production.example — a diferença de produção está nos sed abaixo.
+    cp .env.example .env
     sed -i "s|^APP_NAME=.*|APP_NAME=\"PetroWeb Frota\"|" .env
     sed -i "s|^APP_URL=.*|APP_URL=https://${DOMINIO}|" .env
     sed -i "s|^APP_ENV=.*|APP_ENV=production|" .env
@@ -157,6 +168,19 @@ if [ ! -f .env ]; then
     sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${DB_NAME}|" .env
     sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${DB_USER}|" .env
     sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASS}|" .env
+
+    # A conexão `central` cai para CENTRAL_DB_DATABASE, cujo padrão é
+    # 'frota_central' — que NÃO é o banco criado acima. Sem esta linha, o
+    # migrate do central tenta um banco inexistente.
+    sed -i "s|^CENTRAL_DB_DATABASE=.*|CENTRAL_DB_DATABASE=${DB_NAME}|" .env
+    grep -q '^CENTRAL_DB_DATABASE=' .env || echo "CENTRAL_DB_DATABASE=${DB_NAME}" >> .env
+
+    sed -i "s|^PROVEDOR_DOMAIN=.*|PROVEDOR_DOMAIN=admin.${DOMINIO}|" .env
+
+    # Sessão em cookie de host — cada tenant com o seu. Cookie de domínio pai
+    # seria compartilhado entre clientes.
+    sed -i "s|^SESSION_DOMAIN=.*|SESSION_DOMAIN=null|" .env
+
     php artisan key:generate --force
     echo "  .env criado. REVISE antes de usar em produção — SMTP, provedor fiscal, Pix."
 else
@@ -371,8 +395,7 @@ cat <<FIM
        php artisan tenants:run municipios:importar --tenants=serraazul
 
   4. Só para DEMONSTRAÇÃO — empresa, filial, usuários e clientes fictícios:
-       php artisan tenants:run db:seed --tenants=serraazul \\
-         --argument="class=Database\\\\Seeders\\\\DemonstracaoSeeder"
+       php artisan demo:semear serraazul
      A filial nasce em homologação. Troque a senha padrão antes de qualquer
      uso real.
 

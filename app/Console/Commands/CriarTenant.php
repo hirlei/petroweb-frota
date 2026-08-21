@@ -104,7 +104,7 @@ class CriarTenant extends Command
         $this->newLine();
         $this->line('Próximos passos dentro do tenant:');
         $this->line("  php artisan tenants:run municipios:importar --tenants={$slug}");
-        $this->line("  php artisan tenants:run db:seed --tenants={$slug} --argument=\"class=Database\\\\Seeders\\\\DemonstracaoSeeder\"");
+        $this->line("  php artisan demo:semear {$slug}   # só para demonstração");
 
         return self::SUCCESS;
     }
