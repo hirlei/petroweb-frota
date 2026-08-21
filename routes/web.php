@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Livewire\Pessoas;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,6 +18,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'auth', 'verified'])->group(function (): void {
     Route::view('/', 'inicio')->name('inicio');
+
+    /*
+     * 1010 — Pessoas. O nome da rota é o que o config/navegacao.php procura e
+     * o que o Ctrl+K resolve; mudá-lo apaga o item da sidebar.
+     */
+    Route::get('/pessoas', Pessoas\Index::class)->name('pessoas.index');
+    Route::get('/pessoas/nova', Pessoas\Formulario::class)->name('pessoas.criar');
+    Route::get('/pessoas/{pessoa}', Pessoas\Formulario::class)->name('pessoas.editar');
 });
 
 require __DIR__ . '/auth.php';

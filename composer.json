@@ -2,7 +2,14 @@
     "name": "halc/petroweb-frota",
     "type": "project",
     "description": "PetroWeb Frota — gestão de transporte rodoviário de cargas (TMS) com CT-e e MDF-e.",
-    "keywords": ["tms", "transportadora", "cte", "mdfe", "frota", "laravel"],
+    "keywords": [
+        "tms",
+        "transportadora",
+        "cte",
+        "mdfe",
+        "frota",
+        "laravel"
+    ],
     "license": "proprietary",
     "require": {
         "php": "^8.2",
@@ -53,7 +60,11 @@
         ],
         "lint": "pint --test",
         "analyse": "phpstan analyse --memory-limit=1G",
-        "test": "@php artisan test"
+        "test": "@php artisan test",
+        "verificar": [
+            "php tests/sem-vendor/runner.php",
+            "php tests/sem-vendor/verificar-views.php"
+        ]
     },
     "extra": {
         "laravel": {

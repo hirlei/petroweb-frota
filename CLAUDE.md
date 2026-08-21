@@ -112,10 +112,16 @@ php artisan migrate --database=central --path=database/migrations/central
 php artisan tenants:migrate
 php artisan tenants:seed
 
+# Ícones (sprite local, sem CDN) — rodar quando usar ícone novo
+npm run icones
+
 # Qualidade — rodar antes de todo commit
 composer lint      # pint --test
 composer analyse   # phpstan
 composer test
+
+# Sem vendor/ instalado (ambiente sem packagist)
+composer verificar # domínio puro + estrutura das views
 ```
 
 ---
@@ -168,5 +174,7 @@ documentação de terceiros:
 - Não mostrar código fiscal em tela de operação.
 - Não criar tela de jornada para agregado ou autônomo.
 - Não usar `deleted_at` em tabela fiscal.
+- Não usar ícone que não está em `public/img/icons/sprite.svg` — rode `npm run icones`.
+- Não criar rota de auto-cadastro: usuário é convidado, não se registra.
 - Não criar tabela de motorista, cliente ou proprietário separada — tudo é `pessoas` + `pessoa_papeis`.
 - Não gravar `categ_comb_veic` no cadastro — deriva dos eixos, sempre.

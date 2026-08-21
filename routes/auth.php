@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,14 +12,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
     Route::view('login', 'auth.login')->name('login');
+    Route::post('login', [LoginController::class, 'autenticar']);
 });
 
 Route::middleware('auth')->group(function (): void {
-    Route::post('logout', function () {
-        auth()->logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
-
-        return redirect('/login');
-    })->name('logout');
+    Route::post('logout', [LoginController::class, 'sair'])->name('logout');
 });

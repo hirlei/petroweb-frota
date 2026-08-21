@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
     {
         TenantContext::semEscopo(function (): void {
             $this->call([
+                PermissoesSeeder::class,
                 TabelasDominioFrotaSeeder::class,
             ]);
         });
