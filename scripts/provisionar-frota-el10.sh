@@ -48,6 +48,8 @@ DOMINIO="${DOMINIO:-$DOMINIO_PADRAO}"
 read -rp "Repositório [${REPO_PADRAO}]: " REPO
 REPO="${REPO:-$REPO_PADRAO}"
 read -rp "E-mail para o Let's Encrypt: " EMAIL_LE
+read -rp "Slugs dos clientes iniciais, separados por espaço [serraazul]: " TENANTS_INICIAIS
+TENANTS_INICIAIS="${TENANTS_INICIAIS:-serraazul}"
 
 echo
 echo "  Domínio ....... ${DOMINIO}"
@@ -55,6 +57,7 @@ echo "  Repositório ... ${REPO}"
 echo "  Diretório ..... ${APP_DIR}"
 echo "  Banco ......... ${DB_NAME} (usuário ${DB_USER})"
 echo "  Pool PHP-FPM .. ${POOL}"
+echo "  Clientes ...... ${TENANTS_INICIAIS}  (viram <slug>.${DOMINIO})"
 echo
 read -rp "Confirma? [s/N] " OK
 case "$OK" in [sS]*) ;; *) echo "Abortado."; exit 1 ;; esac
@@ -160,7 +163,10 @@ else
     echo "  .env já existe — preservado."
 fi
 
-php artisan migrate --force
+# O banco CENTRAL tem conexão e caminho próprios. `php artisan migrate` puro
+# não roda nada: as migrations estão em subpastas (central/ e tenant/), e as
+# de tenant só rodam dentro do banco de cada cliente.
+php artisan migrate --force --database=central --path=database/migrations/central
 php artisan storage:link || true
 
 # Build de assets: com 8 GB o vite passa folgado. O custo aqui é CPU —
@@ -232,7 +238,10 @@ cat > "/etc/nginx/conf.d/petroweb-frota.conf" <<NGINX
 server {
     listen 80;
     listen [::]:80;
-    server_name ${DOMINIO};
+    # O domínio raiz responde o painel do provedor; cada cliente vive em
+    # <slug>.${DOMINIO}. Sem o curinga aqui, o subdomínio do tenant cai no
+    # server_name padrão do nginx e devolve a página de outro app.
+    server_name ${DOMINIO} *.${DOMINIO};
     root ${APP_DIR}/public;
 
     index index.php;
@@ -274,8 +283,23 @@ systemctl reload nginx
 
 # ── 8. HTTPS ───────────────────────────────────────────────────────────────
 log "Certificado Let's Encrypt"
-certbot --nginx -d "${DOMINIO}" --non-interactive --agree-tos -m "${EMAIL_LE}" --redirect
+# ATENÇÃO: certificado CURINGA (*.dominio) exige desafio DNS-01, com token da
+# API do provedor de DNS. O --nginx usa HTTP-01, que só emite para nomes
+# exatos. Por isso emitimos para o domínio raiz MAIS os subdomínios de tenant
+# informados — cada cliente novo precisa de uma linha a mais aqui.
+NOMES=(-d "${DOMINIO}")
+
+for SLUG in ${TENANTS_INICIAIS}; do
+    NOMES+=(-d "${SLUG}.${DOMINIO}")
+done
+
+certbot --nginx "${NOMES[@]}" --non-interactive --agree-tos -m "${EMAIL_LE}" --redirect \
+    --cert-name "${DOMINIO}"
 systemctl enable --now certbot-renew.timer 2>/dev/null || true
+
+echo "  Certificado emitido para: ${DOMINIO} ${TENANTS_INICIAIS:+e os subdomínios ${TENANTS_INICIAIS}}"
+echo "  Para adicionar um cliente depois, reemita incluindo o novo nome:"
+echo "    certbot --nginx --cert-name ${DOMINIO} -d ${DOMINIO} -d novo.${DOMINIO} --expand" 
 
 # ── 9. Worker de fila ──────────────────────────────────────────────────────
 log "Worker de fila (systemd)"
@@ -339,22 +363,27 @@ cat <<FIM
   1. Revise o .env: SMTP, provedor fiscal, ambiente da SEFAZ.
      O ambiente é atributo DA FILIAL, mas confira o padrão global.
 
-  2. Rode os seeds de domínio:
-       php artisan db:seed --class=EnumsFiscaisSeeder
-       php artisan db:seed --class=MunicipiosIbgeSeeder
-       php artisan db:seed --class=TabelasDominioSeeder
-     Sem os municípios IBGE o CT-e não emite.
+  2. Crie o primeiro cliente (banco, migrations e catálogo padrão saem juntos):
+       php artisan tenant:criar serraazul --nome="Transportes Serra Azul"
 
-  3. Crie o primeiro usuário e a empresa de homologação.
+  3. Importe os municípios do IBGE dentro do tenant.
+     Sem eles o endereço não salva e o CT-e não emite:
+       php artisan tenants:run municipios:importar --tenants=serraazul
 
-  4. Confira que o PetroWeb continua no ar:
+  4. Só para DEMONSTRAÇÃO — empresa, filial, usuários e clientes fictícios:
+       php artisan tenants:run db:seed --tenants=serraazul \\
+         --argument="class=Database\\\\Seeders\\\\DemonstracaoSeeder"
+     A filial nasce em homologação. Troque a senha padrão antes de qualquer
+     uso real.
+
+  5. Confira que o PetroWeb continua no ar:
        systemctl status php-fpm nginx petroweb-worker
         curl -sI https://homolog.petroweb.app | head -1
 
-  5. Backup: inclua ${DB_NAME} no scripts/backup_producao.sh —
+  6. Backup: inclua ${DB_NAME} e os bancos frota_<slug> no scripts/backup_producao.sh —
      o script atual só cobre o banco do PetroWeb.
 
-  6. PostgreSQL: com 8 GB de RAM e agora DOIS bancos ativos, vale rever
+  7. PostgreSQL: com 8 GB de RAM e agora DOIS bancos ativos, vale rever
      o postgresql.conf — o padrão do EL10 vem dimensionado para uma
      máquina pequena e não foi ajustado ao subir de 2 para 8 GB.
      Deliberadamente NÃO alterei nada: o Postgres é compartilhado com o

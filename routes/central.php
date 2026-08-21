@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 foreach (config('tenancy.central_domains') as $dominio) {
-    Route::domain($dominio)->middleware('web')->group(function (): void {
+    Route::domain($dominio)->middleware('central')->group(function (): void {
         Route::view('/', 'central.entrada')->name('central.entrada');
     });
 }

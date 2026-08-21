@@ -10,11 +10,11 @@ use Illuminate\Support\Facades\Route;
 | ver App\Models\User::exige2fa(). A verificação é da permissão, não do papel.
 */
 
-Route::middleware('guest')->group(function (): void {
+Route::middleware(['tenant', 'guest'])->group(function (): void {
     Route::view('login', 'auth.login')->name('login');
     Route::post('login', [LoginController::class, 'autenticar']);
 });
 
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['tenant', 'auth'])->group(function (): void {
     Route::post('logout', [LoginController::class, 'sair'])->name('logout');
 });

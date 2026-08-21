@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 | vem do usuário autenticado ou da sessão — ver app/Support/TenantContext.php.
 */
 
-Route::middleware(['web', 'auth', 'verified'])->group(function (): void {
+Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::view('/', 'inicio')->name('inicio');
 
     /*
