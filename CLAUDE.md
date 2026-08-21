@@ -152,6 +152,9 @@ documentação de terceiros:
 | Ficha de emergência | **Não é mais de porte obrigatório** desde a Res. ANTT 5.848/2019 |
 | CNPJ | **String de 14**, nunca inteiro — a NT Conjunta 2025.001 o torna alfanumérico |
 | Fator de cubagem | **Não há norma.** Parâmetro em cascata: tabela de frete → cliente → produto → empresa |
+| Bitruck | Teto legal **29 t** (Res. 882/2021 art. 6º "a"). Tabelas de mercado citam 32 t — está errado |
+| Treminhão e tritrem | **Exigem AET.** Mais de duas unidades acima de 57 t ou 19,80 m (art. 17) |
+| `UNIQUE (empresa_id, codigo)` com `empresa_id` nulo | **NULL nunca é igual a NULL.** O catálogo do sistema precisa de índice parcial `WHERE empresa_id IS NULL`, senão duplica |
 
 ---
 
@@ -165,3 +168,5 @@ documentação de terceiros:
 - Não mostrar código fiscal em tela de operação.
 - Não criar tela de jornada para agregado ou autônomo.
 - Não usar `deleted_at` em tabela fiscal.
+- Não criar tabela de motorista, cliente ou proprietário separada — tudo é `pessoas` + `pessoa_papeis`.
+- Não gravar `categ_comb_veic` no cadastro — deriva dos eixos, sempre.
