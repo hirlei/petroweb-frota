@@ -208,11 +208,30 @@ Frota, operação, CT-e, MDF-e e vale-pedágio — 27 telas aprovadas.
 
 | Pendência | Risco | Quando |
 |---|---|---|
-| Backup não cobre os bancos do Frota | **Alto** | Antes da apresentação |
+| ~~Backup não cobre os bancos do Frota~~ | Resolvido | `scripts/backup-frota.sh` |
 | `shared_buffers` do PostgreSQL provavelmente em 128 MB | Médio | Fora de horário de uso |
 | Certificado por nome, não curinga | Baixo | Quando houver muitos clientes |
 | Sem tela de configuração de 2FA | Médio | Sprint de segurança |
 | Senha padrão no seed de demonstração | **Alto se virar uso real** | Ao trocar de demo para piloto |
 
-O backup é o item que eu resolveria primeiro: o `scripts/backup_producao.sh`
-da VPS hoje só enxerga o banco do PetroWeb.
+### Backup — instalar no cron
+
+O `backup_producao.sh` da VPS só enxerga o banco do PetroWeb. O
+`scripts/backup-frota.sh` cobre o banco central do Frota **e um por cliente**,
+descobrindo-os sozinho (cliente novo entra no backup sem editar nada).
+
+```bash
+chmod +x /var/www/petroweb-frota/scripts/backup-frota.sh
+
+# 02h10, depois do backup do PetroWeb
+( crontab -l 2>/dev/null; \
+  echo "10 2 * * * /var/www/petroweb-frota/scripts/backup-frota.sh >> /var/log/backup-frota.log 2>&1" \
+) | crontab -
+
+# Rode uma vez à mão para confirmar
+bash /var/www/petroweb-frota/scripts/backup-frota.sh
+```
+
+Ele confere cada dump com `pg_restore -l` antes de rotacionar, e não apaga
+nada se algum banco falhou. Os dumps ficam na mesma máquina: **leve uma cópia
+para fora** — o script imprime o `rsync` no final.
