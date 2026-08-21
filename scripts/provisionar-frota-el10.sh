@@ -154,7 +154,21 @@ cd "$APP_DIR"
 
 # ── 4. Dependências e .env ─────────────────────────────────────────────────
 log "Composer, .env, chave e assets"
-composer install --no-dev --optimize-autoloader --no-interaction
+# Como root, o Composer desliga plugins por segurança — e sem plugins o
+# package discovery do Laravel não roda. Aqui é uma VPS dedicada, provisionada
+# como root de propósito; a variável é explícita para não virar surpresa.
+export COMPOSER_ALLOW_SUPERUSER=1
+
+if [ -f composer.lock ]; then
+    composer install --no-dev --optimize-autoloader --no-interaction
+else
+    # Sem lock, `install` cai em `update` e resolve tudo do zero. Deixamos
+    # explícito, e o lock gerado DEVE ser commitado depois — build sem lock
+    # não é reprodutível, e a versão que sobe hoje não é a de amanhã.
+    echo "  AVISO: composer.lock ausente — resolvendo dependências do zero."
+    echo "         Commite o lock gerado no repositório após esta instalação."
+    composer update --no-dev --optimize-autoloader --no-interaction
+fi
 
 if [ ! -f .env ]; then
     # O modelo é o .env.example do repositório. Não existe

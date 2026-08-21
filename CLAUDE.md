@@ -14,7 +14,7 @@ qualquer coisa. O `01_DOCUMENTO_MESTRE.md` é o contrato do projeto.
 | Camada | Versão |
 |---|---|
 | PHP | 8.3 (VPS) · `^8.2` no composer |
-| Laravel | 11 |
+| Laravel | 12 — o 11 saiu do suporte de segurança em mar/2026 |
 | Livewire | 4.3 |
 | Banco | **PostgreSQL 16** — não MySQL |
 | Tenancy | `stancl/tenancy`, banco por tenant |
@@ -176,5 +176,7 @@ documentação de terceiros:
 - Não usar `deleted_at` em tabela fiscal.
 - Não usar ícone que não está em `public/img/icons/sprite.svg` — rode `npm run icones`.
 - Não criar rota de auto-cadastro: usuário é convidado, não se registra.
+- Não usar `"*"` como restrição de versão no composer.json, e não subir sem `composer.lock`
+  commitado: build sem lock não é reprodutível.
 - Não criar tabela de motorista, cliente ou proprietário separada — tudo é `pessoas` + `pessoa_papeis`.
 - Não gravar `categ_comb_veic` no cadastro — deriva dos eixos, sempre.
