@@ -88,8 +88,12 @@
                                 </x-select>
                                 <x-input label="Km acumulado" type="number" wire:model="pontos.{{ $i }}.distancia_acumulada_km" />
                                 <x-input label="Pedágio (R$)" type="number" wire:model="pontos.{{ $i }}.valor_pedagio" />
-                                <x-input class="sm:col-span-6" label="Descrição" wire:model="pontos.{{ $i }}.descricao"
-                                         placeholder="Praça de pedágio, posto, ponto de referência…" />
+                                <x-input class="sm:col-span-2" label="Descrição" wire:model="pontos.{{ $i }}.descricao"
+                                         placeholder="Praça, posto, referência…" />
+                                <x-input class="sm:col-span-2" label="Latitude" type="number" wire:model="pontos.{{ $i }}.latitude"
+                                         :error="$errors->first('pontos.' . $i . '.latitude')" placeholder="-12,2664" />
+                                <x-input class="sm:col-span-2" label="Longitude" type="number" wire:model="pontos.{{ $i }}.longitude"
+                                         :error="$errors->first('pontos.' . $i . '.longitude')" placeholder="-38,9663" />
                             </div>
                             <button type="button" wire:click="removerPonto({{ $i }})"
                                     class="mt-6 rounded p-1 text-danger hover:bg-red-50" title="Remover">
@@ -121,4 +125,16 @@
             </x-card>
         </div>
     </div>
+
+    {{-- Mapa do percurso --}}
+    <x-card padding="none" class="mt-4 overflow-hidden">
+        <div class="flex items-center gap-2 border-b border-border px-5 py-3.5">
+            <x-icon name="map" class="h-4 w-4 text-text-secondary" />
+            <h2 class="text-sm font-semibold text-text">Mapa do percurso</h2>
+            <span class="text-sm text-text-muted">Pontos com coordenada informada</span>
+        </div>
+        <div class="p-4">
+            <x-mapa :pontos="$this->pontosMapa" :linha="true" altura="380px" wire:key="mapa-rota-{{ $rota?->id ?? 'nova' }}" />
+        </div>
+    </x-card>
 </div>

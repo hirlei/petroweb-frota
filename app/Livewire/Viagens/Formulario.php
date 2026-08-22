@@ -184,6 +184,53 @@ class Formulario extends Component
         ];
     }
 
+    /**
+     * Pontos para o mapa: os pontos da rota escolhida (coordenada do ponto ou do
+     * município); na falta de rota, origem e destino da viagem.
+     *
+     * @return list<array<string,mixed>>
+     */
+    #[Computed]
+    public function pontosMapa(): array
+    {
+        if ($this->rota_id !== null) {
+            $rota = Rota::query()->with(['pontos.municipio'])->find($this->rota_id);
+
+            if ($rota !== null && $rota->pontos->isNotEmpty()) {
+                return $rota->pontos->map(function ($p): ?array {
+                    $lat = $p->latitude !== null ? (float) $p->latitude : ($p->municipio?->latitude !== null ? (float) $p->municipio->latitude : null);
+                    $lng = $p->longitude !== null ? (float) $p->longitude : ($p->municipio?->longitude !== null ? (float) $p->municipio->longitude : null);
+
+                    if ($lat === null || $lng === null) {
+                        return null;
+                    }
+
+                    return [
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'label' => $p->descricao ?: ($p->municipio ? $p->municipio->nome . '/' . $p->municipio->uf : ucfirst((string) $p->tipo)),
+                        'tipo' => $p->tipo,
+                    ];
+                })->filter()->values()->all();
+            }
+        }
+
+        // Sem rota: origem e destino da viagem.
+        $ids = array_values(array_filter([$this->municipio_origem_id, $this->municipio_destino_id]));
+        $municipios = $ids === [] ? collect() : Municipio::whereIn('id', $ids)->get()->keyBy('id');
+        $pontos = [];
+
+        foreach ([[$this->municipio_origem_id, 'origem'], [$this->municipio_destino_id, 'destino']] as [$id, $tipo]) {
+            $m = $id ? $municipios->get($id) : null;
+
+            if ($m?->latitude !== null) {
+                $pontos[] = ['lat' => (float) $m->latitude, 'lng' => (float) $m->longitude, 'label' => $m->nome . '/' . $m->uf, 'tipo' => $tipo];
+            }
+        }
+
+        return $pontos;
+    }
+
     #[Computed]
     public function composicoes()
     {

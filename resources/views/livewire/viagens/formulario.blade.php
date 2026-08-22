@@ -240,4 +240,17 @@
             </x-card>
         </div>
     </div>
+
+    {{-- Mapa da viagem --}}
+    <x-card padding="none" class="mt-4 overflow-hidden">
+        <div class="flex items-center gap-2 border-b border-border px-5 py-3.5">
+            <x-icon name="map" class="h-4 w-4 text-text-secondary" />
+            <h2 class="text-sm font-semibold text-text">Mapa da viagem</h2>
+            <span class="text-sm text-text-muted">Percurso da rota ou origem → destino</span>
+        </div>
+        <div class="p-4">
+            <x-mapa :pontos="$this->pontosMapa" :linha="true" altura="400px"
+                    wire:key="mapa-viagem-{{ $viagem?->id ?? 'nova' }}-{{ $rota_id }}" />
+        </div>
+    </x-card>
 </div>

@@ -78,13 +78,16 @@ class Formulario extends Component
             'descricao' => (string) $p->descricao,
             'distancia_acumulada_km' => $p->distancia_acumulada_km === null ? '' : (string) $p->distancia_acumulada_km,
             'valor_pedagio' => $p->valor_pedagio === null ? '' : (string) $p->valor_pedagio,
+            'latitude' => $p->latitude === null ? '' : (string) $p->latitude,
+            'longitude' => $p->longitude === null ? '' : (string) $p->longitude,
         ])->all();
     }
 
     public function adicionarPonto(): void
     {
         $this->pontos[] = ['id' => null, 'tipo' => 'passagem', 'municipio_id' => null,
-            'descricao' => '', 'distancia_acumulada_km' => '', 'valor_pedagio' => ''];
+            'descricao' => '', 'distancia_acumulada_km' => '', 'valor_pedagio' => '',
+            'latitude' => '', 'longitude' => ''];
     }
 
     public function removerPonto(int $i): void
@@ -107,6 +110,46 @@ class Formulario extends Component
         }, 0.0);
     }
 
+    /**
+     * Pontos prontos para o mapa: coordenada do próprio ponto ou, na falta, a do
+     * município. Só entram os que têm coordenada.
+     *
+     * @return list<array<string,mixed>>
+     */
+    #[Computed]
+    public function pontosMapa(): array
+    {
+        $ids = collect($this->pontos)->pluck('municipio_id')->filter()->unique()->all();
+        $coordsMunicipio = $ids === []
+            ? collect()
+            : Municipio::whereIn('id', $ids)->get(['id', 'nome', 'uf', 'latitude', 'longitude'])->keyBy('id');
+
+        $mapa = [];
+
+        foreach ($this->pontos as $p) {
+            $lat = ($p['latitude'] ?? '') !== '' ? (float) $p['latitude'] : null;
+            $lng = ($p['longitude'] ?? '') !== '' ? (float) $p['longitude'] : null;
+            $municipio = $p['municipio_id'] ? $coordsMunicipio->get($p['municipio_id']) : null;
+
+            if ($lat === null && $municipio?->latitude !== null) {
+                $lat = (float) $municipio->latitude;
+                $lng = (float) $municipio->longitude;
+            }
+
+            if ($lat === null || $lng === null) {
+                continue;
+            }
+
+            $rotulo = trim((string) ($p['descricao'] ?? '')) !== ''
+                ? $p['descricao']
+                : ($municipio ? $municipio->nome . '/' . $municipio->uf : ucfirst((string) $p['tipo']));
+
+            $mapa[] = ['lat' => $lat, 'lng' => $lng, 'label' => $rotulo, 'tipo' => $p['tipo']];
+        }
+
+        return $mapa;
+    }
+
     protected function rules(): array
     {
         return [
@@ -118,6 +161,8 @@ class Formulario extends Component
             'valor_pedagio_estimado' => ['nullable', 'numeric', 'min:0'],
             'pontos.*.tipo' => ['required', Rule::in(Rota::TIPOS_PONTO)],
             'pontos.*.municipio_id' => ['nullable', 'integer', 'exists:municipios,id'],
+            'pontos.*.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'pontos.*.longitude' => ['nullable', 'numeric', 'between:-180,180'],
         ];
     }
 
@@ -166,6 +211,8 @@ class Formulario extends Component
                     'descricao' => $this->nulo((string) ($ponto['descricao'] ?? '')),
                     'distancia_acumulada_km' => $this->nuloNum((string) ($ponto['distancia_acumulada_km'] ?? '')),
                     'valor_pedagio' => $this->nuloNum((string) ($ponto['valor_pedagio'] ?? '')),
+                    'latitude' => $this->nuloNum((string) ($ponto['latitude'] ?? '')),
+                    'longitude' => $this->nuloNum((string) ($ponto['longitude'] ?? '')),
                 ];
 
                 $modelo = ($ponto['id'] ?? null) !== null

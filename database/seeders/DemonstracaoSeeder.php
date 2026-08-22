@@ -61,6 +61,7 @@ class DemonstracaoSeeder extends Seeder
             $empresa = $this->empresa();
             $filial = $this->filial($empresa);
 
+            $this->coordenadasMunicipios();
             $this->usuarios($empresa, $filial);
             $this->pessoas($empresa);
             $this->mercadorias($empresa);
@@ -778,6 +779,30 @@ class DemonstracaoSeeder extends Seeder
                     'observacoes' => $comprovada ? 'Carga conferida e recebida sem avarias.' : null,
                 ],
             );
+        }
+    }
+
+    /**
+     * Preenche latitude/longitude (centroide aproximado) das cidades usadas na
+     * demonstração — o import do IBGE traz só nome/UF. Sem isso o mapa fica vazio.
+     */
+    private function coordenadasMunicipios(): void
+    {
+        // [nome, uf, latitude, longitude]
+        $cidades = [
+            ['Feira de Santana', 'BA', -12.2664, -38.9663],
+            ['Barreiras', 'BA', -12.1436, -44.9936],
+            ['Goiânia', 'GO', -16.6869, -49.2648],
+            ['Salvador', 'BA', -12.9777, -38.5016],
+            ['Luís Eduardo Magalhães', 'BA', -12.0956, -45.8006],
+            ['Vitória', 'ES', -20.3155, -40.3128],
+            ['São Paulo', 'SP', -23.5505, -46.6333],
+        ];
+
+        foreach ($cidades as [$nome, $uf, $lat, $lng]) {
+            Municipio::where('nome', $nome)->where('uf', $uf)
+                ->whereNull('latitude')
+                ->update(['latitude' => $lat, 'longitude' => $lng]);
         }
     }
 
