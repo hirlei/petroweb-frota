@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use App\Livewire\Composicoes;
+use App\Livewire\Filiais;
 use App\Livewire\Motoristas;
 use App\Livewire\Pessoas;
+use App\Livewire\Usuarios;
 use App\Livewire\Veiculos;
+use App\Livewire\Vencimentos;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -50,6 +53,26 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/composicoes', Composicoes\Index::class)->name('composicoes.index');
     Route::get('/composicoes/nova', Composicoes\Formulario::class)->name('composicoes.criar');
     Route::get('/composicoes/{composicao}', Composicoes\Formulario::class)->name('composicoes.editar');
+
+    /*
+     * 2040 — Vencimentos. Painel de leitura sobre documentos, motoristas e
+     * certificados; consolida o que expira e bloqueia a operação.
+     */
+    Route::get('/vencimentos', Vencimentos\Index::class)->name('vencimentos.index');
+
+    /*
+     * 9020 — Usuários. Convidados pelo gestor; papéis via spatie/permission.
+     */
+    Route::get('/usuarios', Usuarios\Index::class)->name('usuarios.index');
+    Route::get('/usuarios/novo', Usuarios\Formulario::class)->name('usuarios.criar');
+    Route::get('/usuarios/{usuario}', Usuarios\Formulario::class)->name('usuarios.editar');
+
+    /*
+     * 9010 — Empresa e filiais. Cada filial é um emitente fiscal independente.
+     */
+    Route::get('/filiais', Filiais\Index::class)->name('filiais.index');
+    Route::get('/filiais/nova', Filiais\Formulario::class)->name('filiais.criar');
+    Route::get('/filiais/{filial}', Filiais\Formulario::class)->name('filiais.editar');
 });
 
 require __DIR__ . '/auth.php';
