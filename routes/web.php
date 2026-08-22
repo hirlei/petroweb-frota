@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Livewire\Abastecimentos;
 use App\Livewire\Composicoes;
 use App\Livewire\Filiais;
+use App\Livewire\Manutencao;
 use App\Livewire\Motoristas;
 use App\Livewire\Ocorrencias;
 use App\Livewire\Permissoes;
@@ -72,6 +74,20 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/composicoes', Composicoes\Index::class)->name('composicoes.index');
     Route::get('/composicoes/nova', Composicoes\Formulario::class)->name('composicoes.criar');
     Route::get('/composicoes/{composicao}', Composicoes\Formulario::class)->name('composicoes.editar');
+
+    /*
+     * 2060 — Abastecimentos. Consumo, média e desvio por veículo.
+     */
+    Route::get('/abastecimentos', Abastecimentos\Index::class)->name('abastecimentos.index');
+    Route::get('/abastecimentos/novo', Abastecimentos\Formulario::class)->name('abastecimentos.criar');
+    Route::get('/abastecimentos/{abastecimento}', Abastecimentos\Formulario::class)->name('abastecimentos.editar');
+
+    /*
+     * 2050 — Manutenção (ordens de serviço).
+     */
+    Route::get('/manutencao', Manutencao\Index::class)->name('manutencao.index');
+    Route::get('/manutencao/nova', Manutencao\Formulario::class)->name('manutencao.criar');
+    Route::get('/manutencao/{os}', Manutencao\Formulario::class)->name('manutencao.editar');
 
     /*
      * 2040 — Vencimentos. Painel de leitura sobre documentos, motoristas e
