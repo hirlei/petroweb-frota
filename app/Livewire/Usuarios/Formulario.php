@@ -122,6 +122,10 @@ class Formulario extends Component
                 $usuario = $this->usuario;
             } else {
                 $dados['empresa_id'] = TenantContext::empresaId();
+                // Usuário é CONVIDADO pelo gestor — já entra verificado. Não há
+                // fluxo de verificação por link (rota verification.notice não
+                // existe); sem isto, o middleware `verified` derruba o acesso.
+                $dados['email_verified_at'] = now();
                 $usuario = User::create($dados);
             }
 
