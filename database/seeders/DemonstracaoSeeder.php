@@ -14,6 +14,8 @@ use App\Models\Mercadoria;
 use App\Models\Motorista;
 use App\Models\Municipio;
 use App\Models\Ocorrencia;
+use App\Models\OrdemServico;
+use App\Models\OrdemServicoItem;
 use App\Models\Pessoa;
 use App\Models\Rota;
 use App\Models\RotaPonto;
@@ -65,6 +67,7 @@ class DemonstracaoSeeder extends Seeder
             $this->documentosVeiculo($empresa);
             $this->abastecimentos($empresa, $filial);
             $this->ocorrencias($empresa);
+            $this->manutencao($empresa, $filial);
         });
 
         $this->command?->newLine();
@@ -510,6 +513,67 @@ class DemonstracaoSeeder extends Seeder
                     'responsavel' => $responsavel,
                     'valor_prejuizo' => $prejuizo,
                     'status' => $status,
+                ],
+            );
+        }
+    }
+
+    private function manutencao(Empresa $empresa, Filial $filial): void
+    {
+        $oficina = $this->pessoaPorDoc($empresa, '33444555000181'); // Oficina Diesel Norte
+        $okz = $this->veiculoPorPlaca($empresa, 'OKZ1A34');
+        $tck = $this->veiculoPorPlaca($empresa, 'TCK9E88');
+
+        // OS encerrada no mês — alimenta o custo de manutenção do dashboard.
+        if ($okz !== null) {
+            $os = OrdemServico::withoutGlobalScopes()->firstOrCreate(
+                ['empresa_id' => $empresa->id, 'numero' => 'OS-0041'],
+                [
+                    'filial_id' => $filial->id,
+                    'veiculo_id' => $okz->id,
+                    'tipo' => 'revisao',
+                    'oficina_id' => $oficina?->id,
+                    'interna' => false,
+                    'abertura' => Carbon::now()->subDays(9)->toDateString(),
+                    'encerramento' => Carbon::now()->subDays(4)->toDateString(),
+                    'odometro' => 482000,
+                    'status' => 'encerrada',
+                    'valor_pecas' => 980.00,
+                    'valor_mao_obra' => 539.00,
+                    'valor_total' => 1519.00,
+                    'observacoes' => 'Revisão de 10.000 km — troca de óleo, filtros e correias.',
+                ],
+            );
+
+            foreach ([
+                ['peca', 'Óleo motor 15W40 (balde 20L)', 'OL-1540', 1, 620.00],
+                ['peca', 'Kit filtros (óleo, ar, combustível)', 'KF-VLV', 1, 360.00],
+                ['servico', 'Mão de obra revisão preventiva', null, 1, 539.00],
+            ] as [$tipo, $desc, $cod, $qtd, $unit]) {
+                OrdemServicoItem::withoutGlobalScopes()->firstOrCreate(
+                    ['ordem_servico_id' => $os->id, 'descricao' => $desc],
+                    ['tipo' => $tipo, 'codigo' => $cod, 'quantidade' => $qtd,
+                        'valor_unitario' => $unit, 'valor_total' => $qtd * $unit],
+                );
+            }
+        }
+
+        // OS aberta — aparece em "próximas manutenções".
+        if ($tck !== null) {
+            OrdemServico::withoutGlobalScopes()->firstOrCreate(
+                ['empresa_id' => $empresa->id, 'numero' => 'OS-0042'],
+                [
+                    'filial_id' => $filial->id,
+                    'veiculo_id' => $tck->id,
+                    'tipo' => 'corretiva',
+                    'oficina_id' => $oficina?->id,
+                    'interna' => false,
+                    'abertura' => Carbon::now()->subDays(3)->toDateString(),
+                    'status' => 'aguardando_peca',
+                    'valor_pecas' => 0,
+                    'valor_mao_obra' => 0,
+                    'valor_total' => 0,
+                    'observacoes' => 'Vazamento no sistema de freio do 2º eixo — aguardando cuíca.',
                 ],
             );
         }
