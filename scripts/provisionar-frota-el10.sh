@@ -203,7 +203,9 @@ fi
 
 # O banco CENTRAL tem conexão e caminho próprios. `php artisan migrate` puro
 # não roda nada: as migrations estão em subpastas (central/ e tenant/), e as
-# de tenant só rodam dentro do banco de cada cliente.
+# de tenant só rodam dentro do banco de cada cliente. A 000050 cria as tabelas
+# de framework (cache, fila, sessão) do central — sem elas o domínio central dá
+# 500 com CACHE_STORE/SESSION_DRIVER=database.
 php artisan migrate --force --database=central --path=database/migrations/central
 php artisan storage:link || true
 
