@@ -249,8 +249,9 @@
             <span class="text-sm text-text-muted">Percurso da rota ou origem → destino</span>
         </div>
         <div class="p-4">
-            <x-mapa :pontos="$this->pontosMapa" :linha="true" altura="400px"
-                    wire:key="mapa-viagem-{{ $viagem?->id ?? 'nova' }}-{{ $rota_id }}" />
+            <x-mapa :pontos="$this->pontosMapa" :geometria="$this->geometriaViagem" :caminhao="$this->caminhaoViagem"
+                    :linha="true" altura="420px"
+                    wire:key="mapa-viagem-{{ $viagem?->id ?? 'nova' }}-{{ $rota_id }}-{{ $veiculo_tracao_id }}" />
         </div>
     </x-card>
 </div>

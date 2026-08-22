@@ -1,23 +1,34 @@
 @props([
     // list<array{lat:float|null,lng:float|null,label:string,tipo?:string,cor?:string}>
-    'pontos'       => [],
-    'linha'        => true,      // desenha a linha do percurso ligando os pontos
-    'percorridoAte' => null,     // índice até onde o trecho é "percorrido" (sólido); resto tracejado
-    'altura'       => '360px',
-    'id'           => null,
+    'pontos'    => [],
+    // traçado pela estrada: array{pontos:list<[lat,lng]>,...} | list<[lat,lng]> | null
+    'geometria' => null,
+    // caminhão na posição: array{lat:float,lng:float,popup?:string} | null
+    'caminhao'  => null,
+    'linha'     => true,   // liga os pontos em reta quando não há geometria
+    'altura'    => '360px',
+    'id'        => null,
 ])
 
 @php
     $mapId = $id ?? 'mapa-' . uniqid();
-    $temCoords = collect($pontos)->contains(fn ($p) => ($p['lat'] ?? null) !== null && ($p['lng'] ?? null) !== null);
+
+    $temGeometria = is_array($geometria)
+        && (isset($geometria['pontos']) ? count($geometria['pontos']) > 1 : count($geometria) > 1);
+    $temPontos = collect($pontos)->contains(fn ($p) => ($p['lat'] ?? null) !== null && ($p['lng'] ?? null) !== null);
+    $temCaminhao = is_array($caminhao) && ($caminhao['lat'] ?? null) !== null;
+    $temAlgo = $temGeometria || $temPontos || $temCaminhao;
+
     $config = [
-        'pontos'        => array_values($pontos),
-        'linha'         => (bool) $linha,
-        'percorridoAte' => $percorridoAte,
+        'pontos'    => array_values($pontos),
+        'geometria' => $geometria,
+        'caminhao'  => $caminhao,
+        'linha'     => (bool) $linha,
+        'tiles'     => config('mapa.tiles'),
     ];
 @endphp
 
-@if ($temCoords)
+@if ($temAlgo)
     <div wire:ignore
          x-data="mapaPercurso(@js($config))"
          class="overflow-hidden rounded-lg border border-border">
@@ -28,6 +39,6 @@
          style="height: {{ $altura }};">
         <x-icon name="map" class="h-6 w-6 text-text-muted" />
         <p class="max-w-xs text-sm text-text-secondary">Sem coordenadas para exibir no mapa.</p>
-        <p class="max-w-xs text-xs text-text-muted">Informe latitude e longitude nos pontos do percurso (ou nos municípios) para ver a rota desenhada.</p>
+        <p class="max-w-xs text-xs text-text-muted">Informe latitude e longitude nos pontos e use “Calcular traçado” para desenhar a rota pela estrada.</p>
     </div>
 @endif

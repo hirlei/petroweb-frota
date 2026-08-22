@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Services\Roteirizacao\Roteirizador;
+use App\Services\Roteirizacao\RoteirizadorOrs;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
@@ -13,7 +15,16 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->bind(Roteirizador::class, function (): Roteirizador {
+            $cfg = config('mapa.roteirizacao.ors');
+
+            return new RoteirizadorOrs(
+                baseUrl: rtrim((string) $cfg['base_url'], '/'),
+                chave: $cfg['chave'] ?? null,
+                perfil: (string) $cfg['perfil'],
+                timeout: (int) $cfg['timeout'],
+            );
+        });
     }
 
     public function boot(): void

@@ -4,13 +4,16 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 /**
- * Mapa de percurso (Leaflet + OpenStreetMap).
+ * Mapa de percurso (Leaflet + OpenStreetMap / Esri satélite).
  *
- * Componente Alpine registrado no Alpine que o Livewire já carrega. Recebe os
- * pontos (lat/lng/label/cor/tipo) e desenha marcadores + linha do percurso.
- * Usamos L.circleMarker (SVG, sem imagem) de propósito: evita o problema
- * clássico dos ícones-padrão do Leaflet quebrarem sob bundler. O container leva
- * wire:ignore para o Livewire não recriar o mapa a cada atualização.
+ * Componente Alpine registrado no Alpine que o Livewire já carrega. Desenha:
+ *  - o traçado pela estrada (config.geometria, vindo do OpenRouteService) ou,
+ *    na falta, a linha reta ligando os pontos;
+ *  - os marcadores dos pontos (origem, pedágio, destino…);
+ *  - o caminhão na posição informada, com balão de informações.
+ * Duas camadas base (Mapa / Satélite) via seletor. O container leva wire:ignore
+ * para o Livewire não recriar o mapa a cada atualização. Usamos L.circleMarker
+ * (SVG) de propósito: evita o problema dos ícones-padrão do Leaflet sob bundler.
  */
 const CORES = {
     origem: '#16a34a',
@@ -22,60 +25,84 @@ const CORES = {
     rota: '#d97706',
 };
 
+function camadasBase(tiles) {
+    const base = {};
+    const mapa = tiles?.mapa;
+    const satelite = tiles?.satelite;
+
+    if (mapa) {
+        base['Mapa'] = L.tileLayer(mapa.url, { maxZoom: mapa.max_zoom || 19, attribution: mapa.atribuicao || '' });
+    }
+    if (satelite) {
+        base['Satélite'] = L.tileLayer(satelite.url, { maxZoom: satelite.max_zoom || 19, attribution: satelite.atribuicao || '' });
+    }
+    if (Object.keys(base).length === 0) {
+        base['Mapa'] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' });
+    }
+    return base;
+}
+
 function iniciarMapaPercurso(el, config) {
     const pontos = (config.pontos || []).filter((p) => p.lat != null && p.lng != null);
+    const geometria = Array.isArray(config.geometria?.pontos) ? config.geometria.pontos : (Array.isArray(config.geometria) ? config.geometria : null);
 
-    const map = L.map(el, {
-        scrollWheelZoom: false,
-        attributionControl: true,
-    });
+    const map = L.map(el, { scrollWheelZoom: false });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '&copy; OpenStreetMap',
-    }).addTo(map);
-
-    const coords = pontos.map((p) => [Number(p.lat), Number(p.lng)]);
-
-    // Linha do percurso (trecho percorrido sólido + restante tracejado, quando indicado).
-    if (config.linha && coords.length > 1) {
-        const feitos = Number.isInteger(config.percorridoAte) ? config.percorridoAte : coords.length - 1;
-
-        if (feitos > 0) {
-            L.polyline(coords.slice(0, feitos + 1), { color: CORES.rota, weight: 5 }).addTo(map);
-        }
-        if (feitos < coords.length - 1) {
-            L.polyline(coords.slice(Math.max(feitos, 0)), {
-                color: CORES.rota, weight: 4, opacity: 0.55, dashArray: '2 10',
-            }).addTo(map);
-        }
+    const bases = camadasBase(config.tiles);
+    Object.values(bases)[0].addTo(map); // primeira camada (Mapa) por padrão
+    if (Object.keys(bases).length > 1) {
+        L.control.layers(bases, {}, { position: 'topright' }).addTo(map);
     }
 
-    // Marcadores.
+    let limites = [];
+
+    // 1) Traçado pela estrada, quando calculado.
+    if (geometria && geometria.length > 1) {
+        const linha = geometria.map((c) => [Number(c[0]), Number(c[1])]);
+        L.polyline(linha, { color: CORES.rota, weight: 5, opacity: 0.9 }).addTo(map);
+        limites = linha;
+    } else if (config.linha && pontos.length > 1) {
+        // 2) Sem traçado: liga os pontos em reta (fallback).
+        const linha = pontos.map((p) => [Number(p.lat), Number(p.lng)]);
+        L.polyline(linha, { color: CORES.rota, weight: 4, opacity: 0.6, dashArray: '4 8' }).addTo(map);
+        limites = linha;
+    }
+
+    // Marcadores dos pontos.
     pontos.forEach((p) => {
         const cor = CORES[p.cor] || CORES[p.tipo] || CORES.parada;
-        const raio = p.tipo === 'atual' || p.cor === 'atual' ? 10 : 7;
-
         L.circleMarker([Number(p.lat), Number(p.lng)], {
-            radius: raio,
-            color: '#ffffff',
-            weight: 2,
-            fillColor: cor,
-            fillOpacity: 1,
-        })
-            .addTo(map)
-            .bindPopup(p.label || '');
+            radius: 7, color: '#ffffff', weight: 2, fillColor: cor, fillOpacity: 1,
+        }).addTo(map).bindPopup(p.label || '');
+        if (limites.length === 0) limites.push([Number(p.lat), Number(p.lng)]);
     });
 
-    if (coords.length === 1) {
-        map.setView(coords[0], 12);
-    } else if (coords.length > 1) {
-        map.fitBounds(coords, { padding: [34, 34] });
-    } else {
-        map.setView([-14.235, -51.925], 4); // Brasil, quando não há coordenadas.
+    // Caminhão na posição atual, com balão.
+    if (config.caminhao && config.caminhao.lat != null && config.caminhao.lng != null) {
+        const c = config.caminhao;
+        const icone = L.divIcon({
+            className: 'marcador-caminhao',
+            html: '<div style="width:30px;height:30px;border-radius:50%;background:' + CORES.atual
+                + ';border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:15px;">🚚</div>',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+        });
+        const marcador = L.marker([Number(c.lat), Number(c.lng)], { icon: icone }).addTo(map);
+        if (c.popup) {
+            marcador.bindPopup(c.popup);
+            marcador.openPopup();
+        }
+        limites.push([Number(c.lat), Number(c.lng)]);
     }
 
-    // O container costuma nascer com tamanho 0 dentro de card/aba; recalcula.
+    if (limites.length === 1) {
+        map.setView(limites[0], 12);
+    } else if (limites.length > 1) {
+        map.fitBounds(limites, { padding: [34, 34] });
+    } else {
+        map.setView([-14.235, -51.925], 4);
+    }
+
     setTimeout(() => map.invalidateSize(), 250);
 
     return map;

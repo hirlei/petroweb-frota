@@ -231,6 +231,49 @@ class Formulario extends Component
         return $pontos;
     }
 
+    /** Traçado pela estrada da rota escolhida (se calculado). */
+    #[Computed]
+    public function geometriaViagem(): ?array
+    {
+        if ($this->rota_id === null) {
+            return null;
+        }
+
+        return Rota::query()->find($this->rota_id)?->geometria;
+    }
+
+    /** Caminhão na última posição de GPS conhecida do veículo de tração. */
+    #[Computed]
+    public function caminhaoViagem(): ?array
+    {
+        if ($this->veiculo_tracao_id === null) {
+            return null;
+        }
+
+        $veiculo = Veiculo::query()->with('ultimaPosicao')->find($this->veiculo_tracao_id);
+        $pos = $veiculo?->ultimaPosicao;
+
+        if ($pos === null) {
+            return null;
+        }
+
+        $motorista = $this->motorista_id ? Motorista::query()->with('pessoa')->find($this->motorista_id) : null;
+        $velocidade = $pos->velocidade_kmh !== null ? number_format((float) $pos->velocidade_kmh, 0, ',', '.') . ' km/h' : '—';
+        $quando = $pos->capturado_em?->diffForHumans() ?? '';
+
+        $popup = '<div style="font-size:12px;line-height:1.5">'
+            . '<strong>' . e($veiculo->placaFormatada()) . '</strong><br>'
+            . ($motorista?->pessoa?->razao_social ? e($motorista->pessoa->razao_social) . '<br>' : '')
+            . 'Velocidade: ' . e($velocidade) . '<br>'
+            . '<span style="color:#8f8a82">' . e($quando) . '</span></div>';
+
+        return [
+            'lat' => (float) $pos->latitude,
+            'lng' => (float) $pos->longitude,
+            'popup' => $popup,
+        ];
+    }
+
     #[Computed]
     public function composicoes()
     {

@@ -71,6 +71,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->group('central', ['web']);
 
         /*
+         * API do tenant (máquina-a-máquina): resolve o tenant pelo subdomínio,
+         * SEM sessão, cookies ou CSRF. É o que o webhook de rastreamento usa —
+         * um provedor de GPS que POSTa posições não tem token CSRF; a
+         * autenticação é por token no header, verificada no controller.
+         */
+        $middleware->group('tenant-api', [
+            InitializeTenancyByDomain::class,
+            PreventAccessFromCentralDomains::class,
+            SubstituteBindings::class,
+        ]);
+
+        /*
          * Cinto e suspensório. Mesmo com a ordem explícita acima, garantimos na
          * lista de prioridade que o InitializeTenancyByDomain fique ANTES do
          * StartSession — assim a ordenação interna do Laravel nunca o move para

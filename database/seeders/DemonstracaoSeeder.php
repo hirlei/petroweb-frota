@@ -18,6 +18,7 @@ use App\Models\Municipio;
 use App\Models\OcItem;
 use App\Models\Ocorrencia;
 use App\Models\OrdemColeta;
+use App\Models\PosicaoVeiculo;
 use App\Models\OrdemServico;
 use App\Models\OrdemServicoItem;
 use App\Models\Pessoa;
@@ -78,6 +79,7 @@ class DemonstracaoSeeder extends Seeder
             $this->viagens($empresa, $filial);
             $this->despesasViagem($empresa);
             $this->entregas($empresa);
+            $this->rastreamentoDemo($empresa, $filial);
         });
 
         $this->command?->newLine();
@@ -803,6 +805,44 @@ class DemonstracaoSeeder extends Seeder
             Municipio::where('nome', $nome)->where('uf', $uf)
                 ->whereNull('latitude')
                 ->update(['latitude' => $lat, 'longitude' => $lng]);
+        }
+    }
+
+    private function rastreamentoDemo(Empresa $empresa, Filial $filial): void
+    {
+        // Traçado aproximado da rota (waypoints [lat,lng]) — na produção vem do
+        // OpenRouteService pelo botão "calcular traçado". Aqui é só para o mapa
+        // da demonstração não ficar em linha reta.
+        $rota = Rota::withoutGlobalScopes()->where('empresa_id', $empresa->id)->first();
+
+        if ($rota !== null && $rota->geometria === null) {
+            $pontos = [
+                [-12.2664, -38.9663], [-12.19, -40.5], [-12.31, -42.0], [-12.16, -43.6],
+                [-12.1436, -44.9936], [-13.2, -46.3], [-14.6, -47.6], [-15.9, -48.6],
+                [-16.6869, -49.2648],
+            ];
+            $rota->update(['geometria' => ['pontos' => $pontos, 'distancia_km' => 1180, 'duracao_min' => 1230]]);
+        }
+
+        // Última posição do cavalo OKZ1A34, a caminho (perto de Barreiras).
+        $veiculo = $this->veiculoPorPlaca($empresa, 'OKZ1A34');
+        $viagem = Viagem::withoutGlobalScopes()
+            ->where('empresa_id', $empresa->id)->where('numero', '000042')->first();
+
+        if ($veiculo !== null) {
+            PosicaoVeiculo::withoutGlobalScopes()->firstOrCreate(
+                ['empresa_id' => $empresa->id, 'veiculo_id' => $veiculo->id, 'provedor' => 'manual'],
+                [
+                    'viagem_id' => $viagem?->id,
+                    'latitude' => -12.5000,
+                    'longitude' => -45.5000,
+                    'velocidade_kmh' => 78,
+                    'rumo' => 250,
+                    'ignicao' => true,
+                    'capturado_em' => Carbon::now()->subMinutes(8),
+                    'recebido_em' => Carbon::now()->subMinutes(8),
+                ],
+            );
         }
     }
 

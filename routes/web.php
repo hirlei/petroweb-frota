@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\RastreamentoWebhookController;
 use App\Livewire\Abastecimentos;
 use App\Livewire\Composicoes;
 use App\Livewire\Despesas;
@@ -161,6 +162,16 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
      * 9030 — Papéis e permissões (leitura). O que cada papel pode fazer.
      */
     Route::get('/permissoes', Permissoes\Index::class)->name('permissoes.index');
+});
+
+/*
+ * Webhook de rastreamento (máquina-a-máquina): tenancy pelo subdomínio, sem
+ * sessão nem CSRF (grupo `tenant-api`). Autenticação por token no header. É por
+ * aqui que os provedores de GPS enviam as posições ("direcionamento de sinal").
+ */
+Route::middleware('tenant-api')->group(function (): void {
+    Route::post('/webhooks/rastreamento/{provedor}', [RastreamentoWebhookController::class, 'receber'])
+        ->name('webhooks.rastreamento');
 });
 
 require __DIR__ . '/auth.php';

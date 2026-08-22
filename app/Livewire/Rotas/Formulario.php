@@ -7,6 +7,8 @@ namespace App\Livewire\Rotas;
 use App\Models\Municipio;
 use App\Models\Rota;
 use App\Models\RotaPonto;
+use App\Services\Roteirizacao\RoteirizacaoException;
+use App\Services\Roteirizacao\Roteirizador;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
@@ -40,6 +42,9 @@ class Formulario extends Component
     public string $restr_peso_t = '';
     public string $restr_janela = '';
 
+    /** Traçado pela estrada calculado pelo motor de rotas. */
+    public ?array $geometria = null;
+
     /** @var list<array<string,mixed>> */
     public array $pontos = [];
 
@@ -70,6 +75,7 @@ class Formulario extends Component
         $this->restr_altura_m = (string) ($restricoes['altura_m'] ?? '');
         $this->restr_peso_t = (string) ($restricoes['peso_t'] ?? '');
         $this->restr_janela = (string) ($restricoes['janela'] ?? '');
+        $this->geometria = $rota->geometria;
 
         $this->pontos = $rota->pontos->map(fn (RotaPonto $p): array => [
             'id' => $p->id,
@@ -94,6 +100,45 @@ class Formulario extends Component
     {
         unset($this->pontos[$i]);
         $this->pontos = array_values($this->pontos);
+    }
+
+    /**
+     * Calcula o traçado pela estrada a partir dos pontos com coordenada, via
+     * motor de rotas. Guarda em memória; persiste no salvar.
+     */
+    public function calcularTracado(Roteirizador $roteirizador): void
+    {
+        $coords = array_map(fn (array $p): array => [$p['lat'], $p['lng']], $this->pontosMapa);
+
+        if (count($coords) < 2) {
+            session()->flash('erro_tracado', 'Informe coordenadas em pelo menos dois pontos para traçar a rota.');
+
+            return;
+        }
+
+        try {
+            $resultado = $roteirizador->rotear($coords);
+        } catch (RoteirizacaoException $e) {
+            session()->flash('erro_tracado', $e->getMessage());
+
+            return;
+        }
+
+        $this->geometria = [
+            'pontos' => $resultado['pontos'],
+            'distancia_km' => $resultado['distancia_km'],
+            'duracao_min' => $resultado['duracao_min'],
+        ];
+
+        // Preenche distância/tempo do cabeçalho quando ainda vazios.
+        if ($this->distancia_km === '') {
+            $this->distancia_km = (string) $resultado['distancia_km'];
+        }
+        if ($this->tempo_estimado_min === '') {
+            $this->tempo_estimado_min = (string) $resultado['duracao_min'];
+        }
+
+        session()->flash('sucesso_tracado', "Traçado calculado: {$resultado['distancia_km']} km · {$resultado['duracao_min']} min. Salve a rota para guardar.");
     }
 
     #[Computed]
@@ -192,6 +237,7 @@ class Formulario extends Component
             'tempo_estimado_min' => $this->tempo_estimado_min === '' ? null : (int) $this->tempo_estimado_min,
             'valor_pedagio_estimado' => $this->nuloNum($this->valor_pedagio_estimado),
             'restricoes' => $restricoes === [] ? null : $restricoes,
+            'geometria' => $this->geometria,
             'ativa' => $this->ativa,
         ];
 

@@ -131,10 +131,27 @@
         <div class="flex items-center gap-2 border-b border-border px-5 py-3.5">
             <x-icon name="map" class="h-4 w-4 text-text-secondary" />
             <h2 class="text-sm font-semibold text-text">Mapa do percurso</h2>
-            <span class="text-sm text-text-muted">Pontos com coordenada informada</span>
+            <div class="flex-1"></div>
+            <x-button variant="neutral" size="sm" icon="route" wire:click="calcularTracado" wire:loading.attr="disabled" wire:target="calcularTracado">
+                <span wire:loading.remove wire:target="calcularTracado">Calcular traçado pela estrada</span>
+                <span wire:loading wire:target="calcularTracado">Calculando…</span>
+            </x-button>
         </div>
         <div class="p-4">
-            <x-mapa :pontos="$this->pontosMapa" :linha="true" altura="380px" wire:key="mapa-rota-{{ $rota?->id ?? 'nova' }}" />
+            @if (session('sucesso_tracado'))
+                <div class="mb-3 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800
+                            dark:border-green-800/50 dark:bg-green-950/50 dark:text-green-300">
+                    <x-icon name="check" class="h-3.5 w-3.5 flex-shrink-0" /> {{ session('sucesso_tracado') }}
+                </div>
+            @endif
+            @if (session('erro_tracado'))
+                <div class="mb-3 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800
+                            dark:border-red-800/50 dark:bg-red-950/50 dark:text-red-300">
+                    <x-icon name="alert-triangle" class="h-3.5 w-3.5 flex-shrink-0" /> {{ session('erro_tracado') }}
+                </div>
+            @endif
+            <x-mapa :pontos="$this->pontosMapa" :geometria="$geometria" :linha="true" altura="400px"
+                    wire:key="mapa-rota-{{ $rota?->id ?? 'nova' }}-{{ $geometria ? 'geo' : 'reta' }}" />
         </div>
     </x-card>
 </div>
