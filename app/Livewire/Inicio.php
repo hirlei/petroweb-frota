@@ -7,6 +7,7 @@ namespace App\Livewire;
 use App\Models\Abastecimento;
 use App\Models\Motorista;
 use App\Models\Ocorrencia;
+use App\Models\OrdemServico;
 use App\Models\Veiculo;
 use App\Models\VeiculoDocumento;
 use Illuminate\Contracts\View\View;
@@ -37,7 +38,101 @@ class Inicio extends Component
             'ativos' => Veiculo::query()->where('status', 'ativo')->count(),
             'tracao' => Veiculo::query()->where('tipo', 'tracao')->count(),
             'manutencao' => Veiculo::query()->where('status', 'manutencao')->count(),
+            'terceiro' => Veiculo::query()->where('propriedade', '!=', 'propria')->count(),
         ];
+    }
+
+    /**
+     * Distribuição para a rosca de status, em porcentagens (r=15.9 → circunf. ≈ 100,
+     * então a % vira direto o stroke-dasharray).
+     *
+     * @return array<int,array{label:string,cor:string,qtd:int,pct:float}>
+     */
+    #[Computed]
+    public function frotaSegmentos(): array
+    {
+        $f = $this->frota;
+        $total = max($f['total'], 1);
+        $outros = max($f['total'] - $f['ativos'] - $f['manutencao'], 0);
+
+        return [
+            ['label' => 'Ativos', 'cor' => 'rgb(var(--color-success))', 'qtd' => $f['ativos'], 'pct' => round($f['ativos'] / $total * 100, 1)],
+            ['label' => 'Em manutenção', 'cor' => 'rgb(var(--color-warning))', 'qtd' => $f['manutencao'], 'pct' => round($f['manutencao'] / $total * 100, 1)],
+            ['label' => 'Inativos / outros', 'cor' => 'rgb(var(--color-text-muted))', 'qtd' => $outros, 'pct' => round($outros / $total * 100, 1)],
+        ];
+    }
+
+    /**
+     * Série de consumo (km/L) do veículo com mais leituras, para as barras.
+     *
+     * @return array{veiculo:?string,meta:?float,serie:array<int,array{label:string,media:float,alerta:bool}>}
+     */
+    #[Computed]
+    public function consumo(): array
+    {
+        $leituras = Abastecimento::query()
+            ->whereNotNull('media_calculada')
+            ->with('veiculo')
+            ->orderBy('data_hora')
+            ->get();
+
+        if ($leituras->isEmpty()) {
+            return ['veiculo' => null, 'meta' => null, 'serie' => []];
+        }
+
+        // Veículo com mais leituras.
+        $veiculoId = $leituras->groupBy('veiculo_id')->map(fn ($g) => $g->count())->sortDesc()->keys()->first();
+        $doVeiculo = $leituras->where('veiculo_id', $veiculoId)->values()->take(-4);
+        $veiculo = $doVeiculo->first()?->veiculo;
+
+        $serie = $doVeiculo->map(fn (Abastecimento $a): array => [
+            'label' => $a->data_hora?->translatedFormat('d/m') ?? '',
+            'media' => (float) $a->media_calculada,
+            'alerta' => (bool) $a->alerta,
+        ])->values()->all();
+
+        return [
+            'veiculo' => $veiculo?->placaFormatada(),
+            'meta' => $veiculo?->media_referencia_kml !== null ? (float) $veiculo->media_referencia_kml : null,
+            'serie' => $serie,
+        ];
+    }
+
+    /** @return array{combustivel:float,manutencao:float,total:float,rs_km:?float} */
+    #[Computed]
+    public function custoMes(): array
+    {
+        $mes = now()->startOfMonth();
+
+        $combustivel = (float) Abastecimento::query()->where('data_hora', '>=', $mes)->sum('valor_total');
+        $manutencao = (float) OrdemServico::query()
+            ->where(function ($q) use ($mes): void {
+                $q->where('abertura', '>=', $mes)->orWhere('encerramento', '>=', $mes);
+            })
+            ->sum('valor_total');
+
+        $total = $combustivel + $manutencao;
+        // Km rodado do mês por proxy: soma do km_percorrido entre tanques cheios.
+        $km = (float) Abastecimento::query()->where('data_hora', '>=', $mes)->sum('km_percorrido');
+
+        return [
+            'combustivel' => $combustivel,
+            'manutencao' => $manutencao,
+            'total' => $total,
+            'rs_km' => $km > 0 ? round($total / $km, 2) : null,
+        ];
+    }
+
+    /** @return Collection<int,OrdemServico> */
+    #[Computed]
+    public function proximasManutencoes(): Collection
+    {
+        return OrdemServico::query()
+            ->with('veiculo')
+            ->whereNotIn('status', ['encerrada', 'cancelada'])
+            ->orderBy('abertura')
+            ->limit(4)
+            ->get();
     }
 
     /** @return array<string,int> */
@@ -133,6 +228,7 @@ class Inicio extends Component
         return [
             'vencidos' => $itens->where('dias', '<', 0)->count(),
             'ate30' => $itens->filter(fn ($i) => $i['dias'] >= 0 && $i['dias'] <= 30)->count(),
+            'ate60' => $itens->filter(fn ($i) => $i['dias'] > 30 && $i['dias'] <= 60)->count(),
         ];
     }
 
