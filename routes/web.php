@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\InicioController;
 use App\Livewire\Abastecimentos;
 use App\Livewire\Composicoes;
 use App\Livewire\Filiais;
@@ -30,7 +31,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
-    Route::view('/', 'inicio')->name('inicio');
+    // Controller, não Route::view: ver InicioController (mesma armadilha do 419).
+    Route::get('/', InicioController::class)->name('inicio');
 
     /*
      * 1010 — Pessoas. O nome da rota é o que o config/navegacao.php procura e
