@@ -8,6 +8,7 @@ use App\Models\Concerns\PertenceAEmpresa;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Viagem (rotina 3020) — a execução física do transporte.
@@ -84,6 +85,38 @@ class Viagem extends Model
     public function municipioDestino(): BelongsTo
     {
         return $this->belongsTo(Municipio::class, 'municipio_destino_id');
+    }
+
+    public function despesas(): HasMany
+    {
+        return $this->hasMany(Despesa::class);
+    }
+
+    public function entregas(): HasMany
+    {
+        return $this->hasMany(Entrega::class);
+    }
+
+    /**
+     * Recompõe os custos que vêm das despesas aprovadas (pedágio, motorista,
+     * outros) a partir do que está lançado, deixando combustível e manutenção
+     * como estão (esses vêm de abastecimento e OS). Em seguida consolida total,
+     * margem e custo por km. É o observer de despesa, disparado pelo formulário.
+     */
+    public function recalcularCustosDeDespesas(): void
+    {
+        $porComponente = $this->despesas()
+            ->where('aprovada', true)
+            ->get(['tipo', 'valor'])
+            ->groupBy(fn (Despesa $d): string => $d->componenteCusto())
+            ->map(fn ($grupo) => (float) $grupo->sum('valor'));
+
+        $this->custo_pedagio = $porComponente->get('custo_pedagio', 0.0);
+        $this->custo_motorista = $porComponente->get('custo_motorista', 0.0);
+        $this->custo_outros = $porComponente->get('custo_outros', 0.0);
+
+        $this->consolidarCustos();
+        $this->save();
     }
 
     /**

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Livewire\Abastecimentos;
 use App\Livewire\Composicoes;
+use App\Livewire\Despesas;
+use App\Livewire\Entregas;
 use App\Livewire\Filiais;
 use App\Livewire\Inicio;
 use App\Livewire\Manutencao;
@@ -112,6 +114,20 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/viagens', Viagens\Index::class)->name('viagens.index');
     Route::get('/viagens/nova', Viagens\Formulario::class)->name('viagens.criar');
     Route::get('/viagens/{viagem}', Viagens\Formulario::class)->name('viagens.editar');
+
+    /*
+     * 3050 — Entregas (POD). Prova de entrega; base do evento 110180 do CT-e.
+     */
+    Route::get('/entregas', Entregas\Index::class)->name('entregas.index');
+    Route::get('/entregas/nova', Entregas\Formulario::class)->name('entregas.criar');
+    Route::get('/entregas/{entrega}', Entregas\Formulario::class)->name('entregas.editar');
+
+    /*
+     * 3060 — Despesas de viagem. Aprovadas, entram no custo da viagem.
+     */
+    Route::get('/despesas', Despesas\Index::class)->name('despesas.index');
+    Route::get('/despesas/nova', Despesas\Formulario::class)->name('despesas.criar');
+    Route::get('/despesas/{despesa}', Despesas\Formulario::class)->name('despesas.editar');
 
     /*
      * 3030 — Rotas planejadas.

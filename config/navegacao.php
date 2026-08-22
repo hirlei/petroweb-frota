@@ -50,6 +50,8 @@ return [
         'items' => [
             ['codigo' => '3010', 'label' => 'Ordens de coleta', 'icon' => 'file-text', 'route' => 'ordens-coleta.index', 'can' => 'ordem-coleta.consultar'],
             ['codigo' => '3020', 'label' => 'Viagens',          'icon' => 'route',     'route' => 'viagens.index',       'can' => 'viagem.consultar'],
+            ['codigo' => '3050', 'label' => 'Entregas',         'icon' => 'inbox',     'route' => 'entregas.index',      'can' => 'entrega.consultar'],
+            ['codigo' => '3060', 'label' => 'Despesas de viagem', 'icon' => 'ticket',  'route' => 'despesas.index',      'can' => 'despesa-viagem.consultar'],
             ['codigo' => '3030', 'label' => 'Rotas',            'icon' => 'map',       'route' => 'rotas.index',         'can' => 'rota.consultar'],
             ['codigo' => '3040', 'label' => 'Ocorrências',      'icon' => 'alert-triangle', 'route' => 'ocorrencias.index', 'can' => 'ocorrencia.consultar'],
         ],

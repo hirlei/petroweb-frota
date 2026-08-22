@@ -12,6 +12,8 @@ use App\Models\Empresa;
 use App\Models\Filial;
 use App\Models\Mercadoria;
 use App\Models\Motorista;
+use App\Models\Despesa;
+use App\Models\Entrega;
 use App\Models\Municipio;
 use App\Models\OcItem;
 use App\Models\Ocorrencia;
@@ -73,6 +75,8 @@ class DemonstracaoSeeder extends Seeder
             $this->manutencao($empresa, $filial);
             $this->ordensColeta($empresa, $filial);
             $this->viagens($empresa, $filial);
+            $this->despesasViagem($empresa);
+            $this->entregas($empresa);
         });
 
         $this->command?->newLine();
@@ -707,6 +711,73 @@ class DemonstracaoSeeder extends Seeder
 
             $viagem->consolidarCustos();
             $viagem->save();
+        }
+    }
+
+    private function despesasViagem(Empresa $empresa): void
+    {
+        // Viagem em trânsito com despesas pendentes de aprovação (não afetam o
+        // custo enquanto pendentes — o custo seeded da viagem fica intacto).
+        $viagem = Viagem::withoutGlobalScopes()
+            ->where('empresa_id', $empresa->id)->where('numero', '000042')->first();
+        $motorista = Motorista::withoutGlobalScopes()->where('empresa_id', $empresa->id)->first();
+
+        if ($viagem === null) {
+            return;
+        }
+
+        // [tipo, diasAtras, valor, forma, descricao]
+        $itens = [
+            ['pedagio', 2, 1240.00, 'adiantamento', 'Praças BR-242 / BR-020 — vale-pedágio da viagem.'],
+            ['alimentacao', 2, 180.00, 'adiantamento', 'Refeições do motorista em rota.'],
+            ['chapa', 1, 220.00, 'reembolso', 'Chapa na descarga em Goiânia.'],
+        ];
+
+        foreach ($itens as [$tipo, $diasAtras, $valor, $forma, $descricao]) {
+            Despesa::withoutGlobalScopes()->firstOrCreate(
+                ['empresa_id' => $empresa->id, 'viagem_id' => $viagem->id, 'tipo' => $tipo, 'descricao' => $descricao],
+                [
+                    'motorista_id' => $motorista?->id,
+                    'data' => Carbon::today()->subDays($diasAtras)->toDateString(),
+                    'valor' => $valor,
+                    'forma_pagamento' => $forma,
+                    'aprovada' => false,
+                    'origem' => 'manual',
+                ],
+            );
+        }
+    }
+
+    private function entregas(Empresa $empresa): void
+    {
+        $ocPorNumero = fn (string $n) => OrdemColeta::withoutGlobalScopes()
+            ->where('empresa_id', $empresa->id)->where('numero', $n)->first();
+
+        // [numeroOC, diasAtras, recebedor, doc, tipo, comprovada]
+        $itens = [
+            ['000099', 5, 'José R. Almeida', '52998224725', 'foto', true],
+            ['000100', 1, null, null, 'foto', false],   // a comprovar
+        ];
+
+        foreach ($itens as [$numero, $diasAtras, $recebedor, $doc, $tipo, $comprovada]) {
+            $oc = $ocPorNumero($numero);
+
+            if ($oc === null) {
+                continue;
+            }
+
+            Entrega::withoutGlobalScopes()->firstOrCreate(
+                ['empresa_id' => $empresa->id, 'ordem_coleta_id' => $oc->id],
+                [
+                    'data_hora' => Carbon::now()->subDays($diasAtras)->setTime(14, 20),
+                    'recebedor_nome' => $recebedor,
+                    'recebedor_documento' => $doc,
+                    'tipo_comprovacao' => $tipo,
+                    // Marca como comprovada anexando um caminho fictício de canhoto.
+                    'canhoto_path' => $comprovada ? 'demo/canhoto-' . $numero . '.jpg' : null,
+                    'observacoes' => $comprovada ? 'Carga conferida e recebida sem avarias.' : null,
+                ],
+            );
         }
     }
 
