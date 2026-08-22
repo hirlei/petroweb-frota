@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Livewire\Composicoes;
+use App\Livewire\Motoristas;
 use App\Livewire\Pessoas;
+use App\Livewire\Veiculos;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -26,6 +29,27 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/pessoas', Pessoas\Index::class)->name('pessoas.index');
     Route::get('/pessoas/nova', Pessoas\Formulario::class)->name('pessoas.criar');
     Route::get('/pessoas/{pessoa}', Pessoas\Formulario::class)->name('pessoas.editar');
+
+    /*
+     * 2010 — Veículos. Uma unidade por cadastro (a combinação é a 2020).
+     */
+    Route::get('/veiculos', Veiculos\Index::class)->name('veiculos.index');
+    Route::get('/veiculos/novo', Veiculos\Formulario::class)->name('veiculos.criar');
+    Route::get('/veiculos/{veiculo}', Veiculos\Formulario::class)->name('veiculos.editar');
+
+    /*
+     * 2030 — Motoristas. Papel sobre pessoas; RN-12 vive no RegrasMotorista.
+     */
+    Route::get('/motoristas', Motoristas\Index::class)->name('motoristas.index');
+    Route::get('/motoristas/novo', Motoristas\Formulario::class)->name('motoristas.criar');
+    Route::get('/motoristas/{motorista}', Motoristas\Formulario::class)->name('motoristas.editar');
+
+    /*
+     * 2020 — Composições. A combinação montada; categoria e AET são calculadas.
+     */
+    Route::get('/composicoes', Composicoes\Index::class)->name('composicoes.index');
+    Route::get('/composicoes/nova', Composicoes\Formulario::class)->name('composicoes.criar');
+    Route::get('/composicoes/{composicao}', Composicoes\Formulario::class)->name('composicoes.editar');
 });
 
 require __DIR__ . '/auth.php';
