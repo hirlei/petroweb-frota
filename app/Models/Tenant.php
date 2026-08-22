@@ -34,6 +34,17 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     use HasDatabase;
     use HasDomains;
 
+    /*
+     * O id é o SLUG (string), não um inteiro autoincrementável. Sem estas
+     * duas linhas o Eloquent, no create(), lê o id de volta como `(int) $slug`
+     * = 0 — a linha no banco fica certa, mas o objeto em memória vai com id 0,
+     * e a pipeline do stancl monta o banco `frota_0`. Foi exatamente o bug que
+     * derrubou a criação do primeiro tenant.
+     */
+    public $incrementing = false;
+
+    protected $keyType = 'string';
+
     /** Colunas físicas da tabela tenants; todo o resto cai no JSON `data`. */
     public static function getCustomColumns(): array
     {

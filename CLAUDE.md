@@ -180,3 +180,5 @@ documentação de terceiros:
   commitado: build sem lock não é reprodutível.
 - Não criar tabela de motorista, cliente ou proprietário separada — tudo é `pessoas` + `pessoa_papeis`.
 - Não gravar `categ_comb_veic` no cadastro — deriva dos eixos, sempre.
+- Model com PK string (Tenant) DEVE ter `public $incrementing = false;` e
+  `protected $keyType = 'string';` — senão o create() lê o id como `(int)` = 0.

@@ -11,36 +11,39 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__ . '/../routes/web.php',
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
-        then: function (): void {
+        using: function (): void {
             /*
-             * Rotas do painel do provedor. Ficam FORA do arquivo do tenant de
-             * propósito: um require no meio de web.php faria as duas árvores
-             * compartilharem middleware sem ninguém perceber.
+             * ORDEM IMPORTA. As rotas são casadas na ordem de registro.
+             *
+             * 1) Painel do provedor — domínios centrais EXATOS, sem tenancy.
+             *    Registrado PRIMEIRO: para frota.petroweb.app e
+             *    admin.frota.petroweb.app, a rota com domínio fixo casa antes
+             *    da rota "/" genérica do tenant. Sem isso, o domínio central
+             *    caía no InitializeTenancyByDomain e dava
+             *    "Tenant could not be identified on domain frota.petroweb.app".
              */
-            Route::group([], base_path('routes/central.php'));
+            require base_path('routes/central.php');
+
+            /*
+             * 2) Todo o resto é tenant, resolvido pelo subdomínio. O grupo
+             *    `web` (sessão, cookie, CSRF) é aplicado aqui; as próprias
+             *    rotas acrescentam o grupo `tenant`. Para serraazul.frota…, as
+             *    rotas de domínio fixo acima não casam, então cai aqui e o
+             *    stancl resolve o tenant pelo subdomínio.
+             */
+            Route::middleware('web')->group(base_path('routes/web.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        /*
-         * Grupo `tenant`: resolve o cliente pelo subdomínio e recusa o acesso
-         * se a requisição veio de um domínio central.
-         *
-         * NÃO inclui `web` aqui: routes/web.php já roda dentro do grupo web
-         * por conta do `withRouting(web: …)` acima. Repetir o grupo faria o
-         * StartSession rodar duas vezes na mesma requisição — sessão que
-         * grava e é sobrescrita é o tipo de bug que só aparece em produção,
-         * de forma intermitente.
-         */
+        // Resolve o cliente pelo subdomínio e recusa domínio central.
         $middleware->group('tenant', [
             InitializeTenancyByDomain::class,
             PreventAccessFromCentralDomains::class,
         ]);
 
-        // O painel do provedor responde nos domínios centrais e não inicializa
-        // tenant nenhum — é o único lugar que enxerga o banco central.
+        // Painel do provedor: só sessão, nenhuma tenancy.
         $middleware->group('central', ['web']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
