@@ -71,6 +71,17 @@ no meio de frase.
 **Mockup antes de implementar.** Nenhuma tela nova é codificada sem mockup
 aprovado. Os da Fase 1 estão publicados; peça o link se não tiver.
 
+**Deploy na VPS (fluxo que funciona).** A VPS (`root@179.198.123.188`,
+`/var/www/petroweb-frota`) tem o remote do GitHub com chave **somente leitura**
+— ela puxa, mas não faz `git push`. O bundle vai do sandbox para a VPS por
+`scp` **rodado no PC** (janela sem `ssh`, com aspas no caminho):
+`scp "$HOME\Downloads\<bundle>" root@179.198.123.188:/tmp/`. Na VPS:
+`git fetch /tmp/<bundle> main` → `git merge --no-edit FETCH_HEAD` → migrate/seed/
+build. **Nunca `git reset --hard origin/main` na VPS** enquanto o GitHub estiver
+atrás — apaga o que só existe na VPS. Sincronizar o GitHub é pelo clone local do
+PC (`C:\projetos\petroweb-frota`), que tem chave de escrita. Colar base64 grande
+no terminal não funciona (trava); `scp` é o caminho.
+
 **Botão é sempre leve.** O padrão do PetroWeb Frota (como no ERP) é
 preenchimento suave + texto colorido, peso médio (`fill-100 / text-900`) —
 nunca fill sólido saturado com texto branco. É o que o `x-button` já entrega
