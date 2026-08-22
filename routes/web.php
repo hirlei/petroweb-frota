@@ -8,6 +8,7 @@ use App\Livewire\Motoristas;
 use App\Livewire\Ocorrencias;
 use App\Livewire\Permissoes;
 use App\Livewire\Pessoas;
+use App\Livewire\Produtos;
 use App\Livewire\Rotas;
 use App\Livewire\TabelasFrete;
 use App\Livewire\Usuarios;
@@ -40,6 +41,13 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     /*
      * 1030 — Tabelas de frete. Geral ou por cliente; preço pela soma dos itens.
      */
+    /*
+     * 1020 — Produtos (mercadorias). Catálogo de cargas.
+     */
+    Route::get('/produtos', Produtos\Index::class)->name('produtos.index');
+    Route::get('/produtos/novo', Produtos\Formulario::class)->name('produtos.criar');
+    Route::get('/produtos/{mercadoria}', Produtos\Formulario::class)->name('produtos.editar');
+
     Route::get('/tabelas-frete', TabelasFrete\Index::class)->name('tabelas-frete.index');
     Route::get('/tabelas-frete/nova', TabelasFrete\Formulario::class)->name('tabelas-frete.criar');
     Route::get('/tabelas-frete/{tabela}', TabelasFrete\Formulario::class)->name('tabelas-frete.editar');
