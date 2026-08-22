@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Livewire\Composicoes;
 use App\Livewire\Filiais;
 use App\Livewire\Motoristas;
+use App\Livewire\Permissoes;
 use App\Livewire\Pessoas;
 use App\Livewire\Usuarios;
 use App\Livewire\Veiculos;
@@ -73,6 +74,11 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/filiais', Filiais\Index::class)->name('filiais.index');
     Route::get('/filiais/nova', Filiais\Formulario::class)->name('filiais.criar');
     Route::get('/filiais/{filial}', Filiais\Formulario::class)->name('filiais.editar');
+
+    /*
+     * 9030 — Papéis e permissões (leitura). O que cada papel pode fazer.
+     */
+    Route::get('/permissoes', Permissoes\Index::class)->name('permissoes.index');
 });
 
 require __DIR__ . '/auth.php';
