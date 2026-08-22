@@ -185,32 +185,30 @@ documentação de terceiros:
 
 ---
 
-## Em investigação — 419 Page Expired no login (tenant)
+## RESOLVIDO — 419 no login e a regra do `Route::view` sob tenant
 
-**Sintoma.** POST `/login` em `<slug>.frota.petroweb.app` volta 419, inclusive em
-aba anônima. Reproduzível no servidor via curl (GET pega o token, POST devolve 419).
+**Sintoma.** POST `/login` no tenant voltava 419; depois de corrigido, virou laço
+de redirect (ERR_TOO_MANY_REDIRECTS) na `/`.
 
-**Causa raiz confirmada.** A sessão do GET `/login` é gravada no banco **CENTRAL**,
-e o POST lê do banco do **TENANT** — o token CSRF não bate. Prova (com as duas
-tabelas `sessions` zeradas): após o GET, `central=1 tenant=0`; após o POST,
-`central=1 tenant=1` (o POST criou sessão nova, vazia, no tenant).
+**Causa raiz.** `Route::view()` (e provavelmente `Route::redirect()`) NÃO recebe a
+mesma ordenação de middleware que uma rota de controller. Em rota de view, a
+tenancy inicializava DEPOIS do `StartSession` — a sessão (com o token CSRF) caía
+no banco **CENTRAL** no GET, enquanto o POST (controller) lia do **TENANT**. Token
+não batia → 419. Com o `/login` corrigido mas a `/` ainda em `Route::view`, o
+`/login` via logado (tenant) e mandava pra `/`; a `/` via deslogado (central) e
+mandava pro `/login` → laço.
 
-**O que já foi tentado e NÃO resolveu:**
-- `prependToPriorityList(before: StartSession, prepend: InitializeTenancyByDomain)`.
-- Grupo `tenant` com a pilha de sessão/cookie/CSRF explícita, tenancy em primeiro,
-  sem envolver as rotas no grupo `web`.
+**Correção.** Nenhuma rota sob o middleware `tenant` usa `Route::view`. Login e
+início viraram controllers (`LoginController::mostrar`, `InicioController`). Como
+controller, GET e POST passam pela mesma pilha, na mesma ordem, e a sessão vive
+sempre no banco do tenant. (O `prependToPriorityList` no bootstrap/app.php e o
+grupo `tenant` com a pilha explícita ajudam, mas o que fecha é não usar view-route.)
 
-Ou seja: mesmo com a tenancy declarada antes do StartSession, o GET ainda grava no
-central. O `SortedMiddleware` do Laravel provavelmente reordena, OU o switch de
-conexão do stancl não vira o `default` a tempo do StartSession no GET.
+**REGRA:** sob o middleware `tenant`, use SEMPRE rota de controller ou componente
+Livewire — **nunca `Route::view` nem `Route::redirect`**. Rota de view só no grupo
+`central` (que não tem tenancy). É cacheável e determinística.
 
-**Próximos passos (amanhã), em ordem:**
-1. Logar `DB::getDefaultConnection()` dentro de um middleware logo antes e depois do
-   StartSession, no GET e no POST — descobrir a conexão real no momento da escrita.
-2. Se o GET estiver mesmo em central: forçar a sessão a seguir o tenant de forma
-   determinística — registrar um bootstrapper do stancl para a sessão, ou fixar
-   `config(['session.connection' => 'tenant'])` dentro do InitializeTenancyByDomain
-   (sem quebrar o painel central, que usa o grupo `central`).
-3. Alternativa de contorno para a demo: `SESSION_DRIVER=cookie` no tenant (sem
-   tabela, sem banco) — tira o problema de conexão da frente enquanto a causa é
-   resolvida direito.
+**Verificação de e-mail.** O usuário é convidado pelo gestor — não há fluxo de
+`verification.notice`. Todo usuário nasce com `email_verified_at` preenchido
+(seeder e formulário de Usuários). Sem isso, o middleware `verified` derruba o
+acesso com "Route [verification.notice] not defined".
