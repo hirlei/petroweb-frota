@@ -11,7 +11,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware(['tenant', 'guest'])->group(function (): void {
-    Route::view('login', 'auth.login')->name('login');
+    // GET e POST no MESMO controller: garante que ambos passem pela mesma
+    // pilha de middleware, na mesma ordem (tenancy antes do StartSession), e a
+    // sessão fique sempre no banco do tenant. Ver LoginController::mostrar().
+    Route::get('login', [LoginController::class, 'mostrar'])->name('login');
     Route::post('login', [LoginController::class, 'autenticar']);
 });
 

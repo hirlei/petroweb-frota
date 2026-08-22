@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +32,20 @@ class LoginController extends Controller
 {
     private const MAXIMO_TENTATIVAS = 5;
     private const JANELA_SEGUNDOS = 60;
+
+    /**
+     * Tela de login. É um método de CONTROLLER de propósito, não um
+     * `Route::view()`: a rota de view não recebia o mesmo tratamento de
+     * ordenação de middleware que a rota POST, e a tenancy inicializava DEPOIS
+     * do StartSession no GET — gravando a sessão (e o token CSRF) no banco
+     * CENTRAL, enquanto o POST lia do banco do TENANT. Resultado: 419 Page
+     * Expired. Com GET e POST no mesmo controller, os dois passam pela mesma
+     * pilha, na mesma ordem, e a sessão vive sempre no banco do tenant.
+     */
+    public function mostrar(): View
+    {
+        return view('auth.login');
+    }
 
     public function autenticar(Request $request): RedirectResponse
     {

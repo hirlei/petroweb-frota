@@ -2,10 +2,21 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\InicioController;
+use App\Livewire\Abastecimentos;
 use App\Livewire\Composicoes;
+use App\Livewire\Filiais;
+use App\Livewire\Manutencao;
 use App\Livewire\Motoristas;
+use App\Livewire\Ocorrencias;
+use App\Livewire\Permissoes;
 use App\Livewire\Pessoas;
+use App\Livewire\Produtos;
+use App\Livewire\Rotas;
+use App\Livewire\TabelasFrete;
+use App\Livewire\Usuarios;
 use App\Livewire\Veiculos;
+use App\Livewire\Vencimentos;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,7 +31,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
-    Route::view('/', 'inicio')->name('inicio');
+    // Controller, não Route::view: ver InicioController (mesma armadilha do 419).
+    Route::get('/', InicioController::class)->name('inicio');
 
     /*
      * 1010 — Pessoas. O nome da rota é o que o config/navegacao.php procura e
@@ -29,6 +41,20 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/pessoas', Pessoas\Index::class)->name('pessoas.index');
     Route::get('/pessoas/nova', Pessoas\Formulario::class)->name('pessoas.criar');
     Route::get('/pessoas/{pessoa}', Pessoas\Formulario::class)->name('pessoas.editar');
+
+    /*
+     * 1030 — Tabelas de frete. Geral ou por cliente; preço pela soma dos itens.
+     */
+    /*
+     * 1020 — Produtos (mercadorias). Catálogo de cargas.
+     */
+    Route::get('/produtos', Produtos\Index::class)->name('produtos.index');
+    Route::get('/produtos/novo', Produtos\Formulario::class)->name('produtos.criar');
+    Route::get('/produtos/{mercadoria}', Produtos\Formulario::class)->name('produtos.editar');
+
+    Route::get('/tabelas-frete', TabelasFrete\Index::class)->name('tabelas-frete.index');
+    Route::get('/tabelas-frete/nova', TabelasFrete\Formulario::class)->name('tabelas-frete.criar');
+    Route::get('/tabelas-frete/{tabela}', TabelasFrete\Formulario::class)->name('tabelas-frete.editar');
 
     /*
      * 2010 — Veículos. Uma unidade por cadastro (a combinação é a 2020).
@@ -50,6 +76,59 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/composicoes', Composicoes\Index::class)->name('composicoes.index');
     Route::get('/composicoes/nova', Composicoes\Formulario::class)->name('composicoes.criar');
     Route::get('/composicoes/{composicao}', Composicoes\Formulario::class)->name('composicoes.editar');
+
+    /*
+     * 2060 — Abastecimentos. Consumo, média e desvio por veículo.
+     */
+    Route::get('/abastecimentos', Abastecimentos\Index::class)->name('abastecimentos.index');
+    Route::get('/abastecimentos/novo', Abastecimentos\Formulario::class)->name('abastecimentos.criar');
+    Route::get('/abastecimentos/{abastecimento}', Abastecimentos\Formulario::class)->name('abastecimentos.editar');
+
+    /*
+     * 2050 — Manutenção (ordens de serviço).
+     */
+    Route::get('/manutencao', Manutencao\Index::class)->name('manutencao.index');
+    Route::get('/manutencao/nova', Manutencao\Formulario::class)->name('manutencao.criar');
+    Route::get('/manutencao/{os}', Manutencao\Formulario::class)->name('manutencao.editar');
+
+    /*
+     * 2040 — Vencimentos. Painel de leitura sobre documentos, motoristas e
+     * certificados; consolida o que expira e bloqueia a operação.
+     */
+    Route::get('/vencimentos', Vencimentos\Index::class)->name('vencimentos.index');
+
+    /*
+     * 3030 — Rotas planejadas.
+     */
+    Route::get('/rotas', Rotas\Index::class)->name('rotas.index');
+    Route::get('/rotas/nova', Rotas\Formulario::class)->name('rotas.criar');
+    Route::get('/rotas/{rota}', Rotas\Formulario::class)->name('rotas.editar');
+
+    /*
+     * 3040 — Ocorrências operacionais.
+     */
+    Route::get('/ocorrencias', Ocorrencias\Index::class)->name('ocorrencias.index');
+    Route::get('/ocorrencias/nova', Ocorrencias\Formulario::class)->name('ocorrencias.criar');
+    Route::get('/ocorrencias/{ocorrencia}', Ocorrencias\Formulario::class)->name('ocorrencias.editar');
+
+    /*
+     * 9020 — Usuários. Convidados pelo gestor; papéis via spatie/permission.
+     */
+    Route::get('/usuarios', Usuarios\Index::class)->name('usuarios.index');
+    Route::get('/usuarios/novo', Usuarios\Formulario::class)->name('usuarios.criar');
+    Route::get('/usuarios/{usuario}', Usuarios\Formulario::class)->name('usuarios.editar');
+
+    /*
+     * 9010 — Empresa e filiais. Cada filial é um emitente fiscal independente.
+     */
+    Route::get('/filiais', Filiais\Index::class)->name('filiais.index');
+    Route::get('/filiais/nova', Filiais\Formulario::class)->name('filiais.criar');
+    Route::get('/filiais/{filial}', Filiais\Formulario::class)->name('filiais.editar');
+
+    /*
+     * 9030 — Papéis e permissões (leitura). O que cada papel pode fazer.
+     */
+    Route::get('/permissoes', Permissoes\Index::class)->name('permissoes.index');
 });
 
 require __DIR__ . '/auth.php';
