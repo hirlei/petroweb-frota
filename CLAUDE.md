@@ -182,3 +182,35 @@ documentação de terceiros:
 - Não gravar `categ_comb_veic` no cadastro — deriva dos eixos, sempre.
 - Model com PK string (Tenant) DEVE ter `public $incrementing = false;` e
   `protected $keyType = 'string';` — senão o create() lê o id como `(int)` = 0.
+
+---
+
+## Em investigação — 419 Page Expired no login (tenant)
+
+**Sintoma.** POST `/login` em `<slug>.frota.petroweb.app` volta 419, inclusive em
+aba anônima. Reproduzível no servidor via curl (GET pega o token, POST devolve 419).
+
+**Causa raiz confirmada.** A sessão do GET `/login` é gravada no banco **CENTRAL**,
+e o POST lê do banco do **TENANT** — o token CSRF não bate. Prova (com as duas
+tabelas `sessions` zeradas): após o GET, `central=1 tenant=0`; após o POST,
+`central=1 tenant=1` (o POST criou sessão nova, vazia, no tenant).
+
+**O que já foi tentado e NÃO resolveu:**
+- `prependToPriorityList(before: StartSession, prepend: InitializeTenancyByDomain)`.
+- Grupo `tenant` com a pilha de sessão/cookie/CSRF explícita, tenancy em primeiro,
+  sem envolver as rotas no grupo `web`.
+
+Ou seja: mesmo com a tenancy declarada antes do StartSession, o GET ainda grava no
+central. O `SortedMiddleware` do Laravel provavelmente reordena, OU o switch de
+conexão do stancl não vira o `default` a tempo do StartSession no GET.
+
+**Próximos passos (amanhã), em ordem:**
+1. Logar `DB::getDefaultConnection()` dentro de um middleware logo antes e depois do
+   StartSession, no GET e no POST — descobrir a conexão real no momento da escrita.
+2. Se o GET estiver mesmo em central: forçar a sessão a seguir o tenant de forma
+   determinística — registrar um bootstrapper do stancl para a sessão, ou fixar
+   `config(['session.connection' => 'tenant'])` dentro do InitializeTenancyByDomain
+   (sem quebrar o painel central, que usa o grupo `central`).
+3. Alternativa de contorno para a demo: `SESSION_DRIVER=cookie` no tenant (sem
+   tabela, sem banco) — tira o problema de conexão da frente enquanto a causa é
+   resolvida direito.
