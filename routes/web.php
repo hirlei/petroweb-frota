@@ -5,8 +5,11 @@ declare(strict_types=1);
 use App\Livewire\Composicoes;
 use App\Livewire\Filiais;
 use App\Livewire\Motoristas;
+use App\Livewire\Ocorrencias;
 use App\Livewire\Permissoes;
 use App\Livewire\Pessoas;
+use App\Livewire\Rotas;
+use App\Livewire\TabelasFrete;
 use App\Livewire\Usuarios;
 use App\Livewire\Veiculos;
 use App\Livewire\Vencimentos;
@@ -35,6 +38,13 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/pessoas/{pessoa}', Pessoas\Formulario::class)->name('pessoas.editar');
 
     /*
+     * 1030 — Tabelas de frete. Geral ou por cliente; preço pela soma dos itens.
+     */
+    Route::get('/tabelas-frete', TabelasFrete\Index::class)->name('tabelas-frete.index');
+    Route::get('/tabelas-frete/nova', TabelasFrete\Formulario::class)->name('tabelas-frete.criar');
+    Route::get('/tabelas-frete/{tabela}', TabelasFrete\Formulario::class)->name('tabelas-frete.editar');
+
+    /*
      * 2010 — Veículos. Uma unidade por cadastro (a combinação é a 2020).
      */
     Route::get('/veiculos', Veiculos\Index::class)->name('veiculos.index');
@@ -60,6 +70,20 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
      * certificados; consolida o que expira e bloqueia a operação.
      */
     Route::get('/vencimentos', Vencimentos\Index::class)->name('vencimentos.index');
+
+    /*
+     * 3030 — Rotas planejadas.
+     */
+    Route::get('/rotas', Rotas\Index::class)->name('rotas.index');
+    Route::get('/rotas/nova', Rotas\Formulario::class)->name('rotas.criar');
+    Route::get('/rotas/{rota}', Rotas\Formulario::class)->name('rotas.editar');
+
+    /*
+     * 3040 — Ocorrências operacionais.
+     */
+    Route::get('/ocorrencias', Ocorrencias\Index::class)->name('ocorrencias.index');
+    Route::get('/ocorrencias/nova', Ocorrencias\Formulario::class)->name('ocorrencias.criar');
+    Route::get('/ocorrencias/{ocorrencia}', Ocorrencias\Formulario::class)->name('ocorrencias.editar');
 
     /*
      * 9020 — Usuários. Convidados pelo gestor; papéis via spatie/permission.
