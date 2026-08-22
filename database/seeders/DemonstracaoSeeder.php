@@ -13,7 +13,9 @@ use App\Models\Filial;
 use App\Models\Mercadoria;
 use App\Models\Motorista;
 use App\Models\Municipio;
+use App\Models\OcItem;
 use App\Models\Ocorrencia;
+use App\Models\OrdemColeta;
 use App\Models\OrdemServico;
 use App\Models\OrdemServicoItem;
 use App\Models\Pessoa;
@@ -24,6 +26,7 @@ use App\Models\TabelaFreteItem;
 use App\Models\User;
 use App\Models\Veiculo;
 use App\Models\VeiculoDocumento;
+use App\Models\Viagem;
 use App\Support\TenantContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -68,6 +71,8 @@ class DemonstracaoSeeder extends Seeder
             $this->abastecimentos($empresa, $filial);
             $this->ocorrencias($empresa);
             $this->manutencao($empresa, $filial);
+            $this->ordensColeta($empresa, $filial);
+            $this->viagens($empresa, $filial);
         });
 
         $this->command?->newLine();
@@ -576,6 +581,132 @@ class DemonstracaoSeeder extends Seeder
                     'observacoes' => 'Vazamento no sistema de freio do 2º eixo — aguardando cuíca.',
                 ],
             );
+        }
+    }
+
+    private function ordensColeta(Empresa $empresa, Filial $filial): void
+    {
+        $tabela = TabelaFrete::withoutGlobalScopes()->where('empresa_id', $empresa->id)->first();
+        $feira = $this->municipio('Feira de Santana', 'BA');
+        $goiania = $this->municipio('Goiânia', 'GO');
+        $salvador = $this->municipio('Salvador', 'BA');
+
+        // [numero, diasAtras, clienteDoc, remetenteDoc, destinatarioDoc, munIni, munFim, peso, valor, frete, status, itens]
+        $ordens = [
+            ['000101', 3, '11222333000181', '11222333000181', '44555666000181', $feira->id, $goiania->id, 32000, 148000, 6280.00, 'aberta', [
+                ['Milho a granel', 'SC', 640, 32000, 148000, '35240611222333000181550010000001011000001015'],
+            ]],
+            ['000100', 8, '44555666000181', '44555666000181', '10456789000143', $goiania->id, $feira->id, 30500, 132500, 5910.00, 'coletada', [
+                ['Farelo de soja', 'SC', 610, 30500, 132500, '52240644555666000181550010000000991000000998'],
+            ]],
+            ['000099', 16, '77888999000181', '77888999000181', '77888999000181', $salvador->id, $goiania->id, 28000, 96000, 5140.00, 'faturada', [
+                ['Fertilizante NPK', 'TON', 28, 28000, 96000, null],
+            ]],
+        ];
+
+        foreach ($ordens as [$numero, $diasAtras, $cliDoc, $remDoc, $destDoc, $munIni, $munFim, $peso, $valor, $frete, $status, $itens]) {
+            $cliente = $this->pessoaPorDoc($empresa, $cliDoc);
+
+            if ($cliente === null) {
+                continue;
+            }
+
+            $ordem = OrdemColeta::withoutGlobalScopes()->firstOrCreate(
+                ['empresa_id' => $empresa->id, 'numero' => $numero],
+                [
+                    'filial_id' => $filial->id,
+                    'data' => Carbon::today()->subDays($diasAtras)->toDateString(),
+                    'cliente_id' => $cliente->id,
+                    'tomador_tipo' => 'remetente',
+                    'remetente_id' => $this->pessoaPorDoc($empresa, $remDoc)?->id,
+                    'destinatario_id' => $this->pessoaPorDoc($empresa, $destDoc)?->id,
+                    'municipio_inicio_id' => $munIni,
+                    'municipio_fim_id' => $munFim,
+                    'previsao_coleta' => Carbon::today()->subDays($diasAtras)->setTime(8, 0),
+                    'previsao_entrega' => Carbon::today()->subDays($diasAtras)->addDay()->setTime(18, 0),
+                    'peso_bruto' => $peso,
+                    'volumes' => (int) $itens[0][2],
+                    'valor_mercadoria' => $valor,
+                    'tabela_frete_id' => $tabela?->id,
+                    'valor_frete_calculado' => $frete,
+                    'status' => $status,
+                ],
+            );
+
+            foreach ($itens as [$desc, $unidade, $qtd, $pesoItem, $valorItem, $chave]) {
+                OcItem::withoutGlobalScopes()->firstOrCreate(
+                    ['ordem_coleta_id' => $ordem->id, 'descricao' => $desc],
+                    [
+                        'quantidade' => $qtd,
+                        'unidade' => $unidade,
+                        'peso' => $pesoItem,
+                        'valor' => $valorItem,
+                        'nfe_chave' => $chave,
+                    ],
+                );
+            }
+        }
+    }
+
+    private function viagens(Empresa $empresa, Filial $filial): void
+    {
+        $tracao = $this->veiculoPorPlaca($empresa, 'OKZ1A34');
+        $rota = Rota::withoutGlobalScopes()->where('empresa_id', $empresa->id)->first();
+        $motorista = Motorista::withoutGlobalScopes()->where('empresa_id', $empresa->id)->first();
+        $feira = $this->municipio('Feira de Santana', 'BA');
+        $goiania = $this->municipio('Goiânia', 'GO');
+
+        if ($tracao === null || $motorista === null) {
+            return;
+        }
+
+        $snapshot = ['PXR-3C56', 'RTA-4D67'];
+
+        // [numero, diasAtras, status, kmIni, kmFin, receita, comb, ped, mot, manut, outros]
+        $lista = [
+            ['000042', 2, 'em_transito', 486000, 486000, 12190.00, 5180.00, 1240.00, 1860.00, 480.00, 200.00],
+            ['000041', 12, 'entregue', 484800, 486000, 11800.00, 5020.00, 1210.00, 1800.00, 0.00, 180.00],
+            ['000040', 25, 'encerrada', 483600, 484800, 11450.00, 4980.00, 1190.00, 1760.00, 320.00, 150.00],
+        ];
+
+        foreach ($lista as [$numero, $diasAtras, $status, $kmIni, $kmFin, $receita, $comb, $ped, $mot, $manut, $outros]) {
+            $viagem = Viagem::withoutGlobalScopes()->firstOrNew(
+                ['empresa_id' => $empresa->id, 'numero' => $numero],
+            );
+
+            if ($viagem->exists) {
+                continue;
+            }
+
+            $viagem->fill([
+                'filial_id' => $filial->id,
+                'tipo' => 'carga_lotacao',
+                'veiculo_tracao_id' => $tracao->id,
+                'composicao_snapshot' => $snapshot,
+                'motorista_id' => $motorista->id,
+                'rota_id' => $rota?->id,
+                'municipio_origem_id' => $feira->id,
+                'municipio_destino_id' => $goiania->id,
+                'saida_prevista' => Carbon::now()->subDays($diasAtras)->setTime(6, 0),
+                'saida_real' => Carbon::now()->subDays($diasAtras)->setTime(6, 30),
+                'chegada_prevista' => Carbon::now()->subDays($diasAtras)->addDay()->setTime(20, 0),
+                'chegada_real' => $status === 'em_transito' ? null : Carbon::now()->subDays($diasAtras)->addDay()->setTime(19, 20),
+                'km_inicial' => $kmIni,
+                'km_final' => $kmFin,
+                'km_percorrido' => $kmFin - $kmIni,
+                'peso_total' => 32000,
+                'valor_carga' => 148000,
+                'custo_combustivel' => $comb,
+                'custo_pedagio' => $ped,
+                'custo_motorista' => $mot,
+                'custo_manutencao' => $manut,
+                'custo_outros' => $outros,
+                'receita_total' => $receita,
+                'status' => $status,
+            ]);
+
+            $viagem->consolidarCustos();
+            $viagem->save();
         }
     }
 

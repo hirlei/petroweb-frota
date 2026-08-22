@@ -71,6 +71,13 @@ no meio de frase.
 **Mockup antes de implementar.** Nenhuma tela nova é codificada sem mockup
 aprovado. Os da Fase 1 estão publicados; peça o link se não tiver.
 
+**Botão é sempre leve.** O padrão do PetroWeb Frota (como no ERP) é
+preenchimento suave + texto colorido, peso médio (`fill-100 / text-900`) —
+nunca fill sólido saturado com texto branco. É o que o `x-button` já entrega
+(`primary` = âmbar suave sobre texto âmbar escuro). Toda tela usa o `x-button`;
+`bg-primary text-white` só em elemento que NÃO é botão de ação (avatar, número
+de passo, chip de toggle).
+
 **Documento fiscal autorizado é imutável.** Nunca `UPDATE` em CT-e ou MDF-e
 autorizado — corrige-se por evento ou cancela-se e reemite.
 

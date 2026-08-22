@@ -9,10 +9,12 @@ use App\Livewire\Inicio;
 use App\Livewire\Manutencao;
 use App\Livewire\Motoristas;
 use App\Livewire\Ocorrencias;
+use App\Livewire\OrdensColeta;
 use App\Livewire\Permissoes;
 use App\Livewire\Pessoas;
 use App\Livewire\Produtos;
 use App\Livewire\Rotas;
+use App\Livewire\Viagens;
 use App\Livewire\TabelasFrete;
 use App\Livewire\Usuarios;
 use App\Livewire\Veiculos;
@@ -96,6 +98,20 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
      * certificados; consolida o que expira e bloqueia a operação.
      */
     Route::get('/vencimentos', Vencimentos\Index::class)->name('vencimentos.index');
+
+    /*
+     * 3010 — Ordens de coleta. Documento de entrada da operação; vira CT-e.
+     */
+    Route::get('/ordens-coleta', OrdensColeta\Index::class)->name('ordens-coleta.index');
+    Route::get('/ordens-coleta/nova', OrdensColeta\Formulario::class)->name('ordens-coleta.criar');
+    Route::get('/ordens-coleta/{ordem}', OrdensColeta\Formulario::class)->name('ordens-coleta.editar');
+
+    /*
+     * 3020 — Viagens. Execução física; carrega os CT-e (N:N, RN-02).
+     */
+    Route::get('/viagens', Viagens\Index::class)->name('viagens.index');
+    Route::get('/viagens/nova', Viagens\Formulario::class)->name('viagens.criar');
+    Route::get('/viagens/{viagem}', Viagens\Formulario::class)->name('viagens.editar');
 
     /*
      * 3030 — Rotas planejadas.
