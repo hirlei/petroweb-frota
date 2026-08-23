@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -71,16 +72,18 @@ return new class extends Migration
             $table->unique(['filial_id', 'modelo', 'serie', 'numero']);
             $table->index(['empresa_id', 'status']);
             $table->index(['empresa_id', 'veiculo_tracao_id', 'status']);
-
-            /*
-             * RN-03 no banco: no máximo UM MDF-e em aberto por veículo de tração.
-             * Índice parcial — só vale para os status que ocupam o veículo.
-             */
-            $table->rawIndex(
-                "(veiculo_tracao_id) WHERE status IN ('rascunho','autorizado','contingencia')",
-                'mdfes_um_aberto_por_veiculo',
-            );
         });
+
+        /*
+         * RN-03 no banco: no máximo UM MDF-e em aberto por veículo de tração.
+         * Índice parcial ÚNICO — o `WHERE` não passa pelo builder do Laravel,
+         * então vai por SQL cru. É o backstop; a checagem amigável fica no
+         * GeradorMdfe.
+         */
+        DB::statement(
+            "CREATE UNIQUE INDEX mdfes_um_aberto_por_veiculo ON mdfes (veiculo_tracao_id) "
+            . "WHERE status IN ('rascunho','autorizado','contingencia')"
+        );
 
         Schema::create('mdfe_documentos', function (Blueprint $table): void {
             $table->id();
