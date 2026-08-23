@@ -87,6 +87,40 @@ class Formulario extends Component
         $this->redirect(route('mdfe.editar', $mdfe), navigate: true);
     }
 
+    /** Repuxa os CT-e vinculados à viagem para os documentos do MDF-e (rascunho). */
+    public function sincronizarDocumentos(): void
+    {
+        $this->authorize('update', $this->mdfe);
+
+        if ($this->mdfe->status !== 'rascunho') {
+            session()->flash('erro', 'Só rascunho pode ter os documentos sincronizados.');
+
+            return;
+        }
+
+        $ctes = $this->mdfe->viagem?->ctes()->get() ?? collect();
+
+        $this->mdfe->documentos()->delete();
+        foreach ($ctes as $cte) {
+            $this->mdfe->documentos()->create([
+                'tipo' => 'cte',
+                'chave' => $cte->chave,
+                'cte_id' => $cte->id,
+                'municipio_descarregamento_id' => $cte->municipio_fim_id,
+                'peso' => $cte->peso_bruto,
+                'valor' => $cte->valor_total_servico,
+            ]);
+        }
+
+        $this->mdfe->update([
+            'peso_bruto_total' => (float) $ctes->sum('peso_bruto'),
+            'valor_carga_total' => (float) $ctes->sum('valor_mercadoria'),
+        ]);
+        $this->mdfe->refresh();
+
+        session()->flash('sucesso', $ctes->count() . ' CT-e sincronizado(s) no manifesto.');
+    }
+
     public function emitir(EmissorFiscal $emissor): void
     {
         $this->authorize('emitir', $this->mdfe);

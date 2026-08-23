@@ -8,6 +8,7 @@ use App\Models\Concerns\PertenceAEmpresa;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -95,6 +96,23 @@ class Viagem extends Model
     public function entregas(): HasMany
     {
         return $this->hasMany(Entrega::class);
+    }
+
+    /** CT-e transportados nesta viagem (N:N, RN-02). */
+    public function ctes(): BelongsToMany
+    {
+        return $this->belongsToMany(Cte::class, 'viagem_ctes')
+            ->withPivot(['sequencia', 'papel', 'entregue_em'])
+            ->withTimestamps()
+            ->orderByPivot('sequencia');
+    }
+
+    /** Recalcula a receita a partir dos CT-e vinculados e reconsolida a margem. */
+    public function recalcularReceitaDosCtes(): void
+    {
+        $this->receita_total = (float) $this->ctes()->sum('valor_total_servico');
+        $this->consolidarCustos();
+        $this->save();
     }
 
     /**

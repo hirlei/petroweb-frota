@@ -14,6 +14,7 @@ use App\Models\Mercadoria;
 use App\Models\Motorista;
 use App\Models\Despesa;
 use App\Models\Entrega;
+use App\Models\FornecedorVpo;
 use App\Models\Municipio;
 use App\Models\OcItem;
 use App\Models\Ocorrencia;
@@ -80,6 +81,7 @@ class DemonstracaoSeeder extends Seeder
             $this->despesasViagem($empresa);
             $this->entregas($empresa);
             $this->rastreamentoDemo($empresa, $filial);
+            $this->fornecedoresVpo();
         });
 
         $this->command?->newLine();
@@ -842,6 +844,24 @@ class DemonstracaoSeeder extends Seeder
                     'capturado_em' => Carbon::now()->subMinutes(8),
                     'recebido_em' => Carbon::now()->subMinutes(8),
                 ],
+            );
+        }
+    }
+
+    private function fornecedoresVpo(): void
+    {
+        // Catálogo GLOBAL (sem empresa_id) — na produção vem da lista do SVRS.
+        // [cnpj, razão social, ato]
+        $fornecedores = [
+            ['01234567000188', 'REPOM S.A. (demo)', 'ANTT 001'],
+            ['02345678000199', 'CONECTCAR SOLUÇÕES DE MOBILIDADE (demo)', 'ANTT 002'],
+            ['03456789000100', 'SEM PARAR / FLEET SOLUTIONS (demo)', 'ANTT 003'],
+        ];
+
+        foreach ($fornecedores as [$cnpj, $razao, $ato]) {
+            FornecedorVpo::firstOrCreate(
+                ['cnpj' => $cnpj],
+                ['razao_social' => $razao, 'ato_habilitacao' => $ato, 'ativo' => true, 'sincronizado_em' => Carbon::now()],
             );
         }
     }

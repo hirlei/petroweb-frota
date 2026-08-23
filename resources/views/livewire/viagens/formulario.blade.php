@@ -223,19 +223,44 @@
                 </div>
             </x-card>
 
-            {{-- CT-e vinculados (pendente) --}}
+            {{-- CT-e vinculados (N:N) --}}
             <x-card padding="none" class="overflow-hidden">
                 <div class="flex items-center gap-2 border-b border-border px-5 py-3.5">
                     <x-icon name="files" class="h-4 w-4 text-text-secondary" />
                     <h2 class="text-sm font-semibold text-text">CT-e vinculados</h2>
-                    <x-badge variant="warning" class="text-[10px]">Em breve</x-badge>
+                    <span class="ml-auto text-sm text-text-muted">{{ $this->ctesVinculados->count() }}</span>
                 </div>
                 <div class="px-5 py-5">
-                    <div class="flex items-start gap-2 rounded-r-md border-l-[3px] border-warning bg-yellow-50 px-3 py-2.5
-                                text-xs text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300">
-                        <x-icon name="info" class="mt-px h-3.5 w-3.5 flex-shrink-0" />
-                        <span>Uma viagem carrega vários CT-e e um CT-e pode passar por várias viagens (N:N). O vínculo é liberado quando o módulo de CT-e (4010) entrar — a receita passará a somar automaticamente dos documentos.</span>
-                    </div>
+                    @if (! $viagem?->exists)
+                        <p class="text-sm text-text-muted">Salve a viagem para vincular os CT-e.</p>
+                    @else
+                        @forelse ($this->ctesVinculados as $c)
+                            <div class="flex items-center justify-between border-t border-border py-2 first:border-0">
+                                <div class="min-w-0">
+                                    <div class="truncate text-sm font-medium text-text">Nº {{ $c->numero ? str_pad((string) $c->numero, 6, '0', STR_PAD_LEFT) : 'rascunho' }} · {{ $c->tomador?->razao_social ?? '—' }}</div>
+                                    <div class="text-xs text-text-muted tabular-nums">R$ {{ number_format((float) $c->valor_total_servico, 2, ',', '.') }}</div>
+                                </div>
+                                <button type="button" wire:click="desvincularCte({{ $c->id }})" class="rounded p-1.5 text-danger hover:bg-red-50 dark:hover:bg-red-950/40" title="Desvincular"><x-icon name="x" class="h-4 w-4" /></button>
+                            </div>
+                        @empty
+                            <p class="text-sm text-text-muted">Nenhum CT-e vinculado ainda.</p>
+                        @endforelse
+
+                        @if ($this->ctesDisponiveis->isNotEmpty())
+                            <div class="mt-3 border-t border-border pt-3">
+                                <x-input-label>Vincular CT-e autorizado</x-input-label>
+                                <select wire:model="cteParaVincular" class="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text">
+                                    <option value="">Selecione…</option>
+                                    @foreach ($this->ctesDisponiveis as $c)
+                                        <option value="{{ $c->id }}">Nº {{ str_pad((string) $c->numero, 6, '0', STR_PAD_LEFT) }} · {{ $c->tomador?->razao_social }} · R$ {{ number_format((float) $c->valor_total_servico, 2, ',', '.') }}</option>
+                                    @endforeach
+                                </select>
+                                <x-button class="mt-2 w-full justify-center" variant="neutral" size="sm" icon="plus"
+                                          x-on:click="$wire.cteParaVincular && $wire.vincularCte($wire.cteParaVincular)">Vincular</x-button>
+                            </div>
+                        @endif
+                        <p class="mt-3 text-xs text-text-muted">A receita da viagem é a soma dos CT-e vinculados (N:N — RN-02).</p>
+                    @endif
                 </div>
             </x-card>
         </div>

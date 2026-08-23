@@ -8,6 +8,7 @@ use App\Models\Concerns\PertenceAEmpresa;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -101,6 +102,14 @@ class Cte extends Model
     public function eventos(): HasMany
     {
         return $this->hasMany(CteEvento::class)->orderBy('data_evento');
+    }
+
+    /** Viagens que transportam este CT-e (N:N, RN-02). */
+    public function viagens(): BelongsToMany
+    {
+        return $this->belongsToMany(Viagem::class, 'viagem_ctes')
+            ->withPivot(['sequencia', 'papel', 'entregue_em'])
+            ->withTimestamps();
     }
 
     public function autorizado(): bool

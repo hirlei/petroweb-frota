@@ -64,7 +64,7 @@
                 </x-card>
 
                 <x-card padding="none" class="overflow-hidden">
-                    <div class="flex items-center gap-2 border-b border-border px-5 py-3.5"><x-icon name="files" class="h-4 w-4 text-text-secondary" /><h2 class="text-sm font-semibold text-text">Documentos vinculados</h2><span class="ml-auto text-sm text-text-muted">{{ $mdfe->documentos->count() }} CT-e</span></div>
+                    <div class="flex items-center gap-2 border-b border-border px-5 py-3.5"><x-icon name="files" class="h-4 w-4 text-text-secondary" /><h2 class="text-sm font-semibold text-text">Documentos vinculados</h2><span class="ml-auto text-sm text-text-muted">{{ $mdfe->documentos->count() }} CT-e</span>@if ($mdfe->status === 'rascunho')<button type="button" wire:click="sincronizarDocumentos" class="rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary-soft">Sincronizar</button>@endif</div>
                     <div class="px-5 py-4">
                         @forelse ($mdfe->documentos as $doc)
                             <div class="flex items-center justify-between border-t border-border py-1.5 text-sm first:border-0"><span class="font-mono text-xs text-text-secondary">{{ $doc->chave ?? '—' }}</span><span class="text-text-muted tabular-nums">R$ {{ number_format((float) $doc->valor, 2, ',', '.') }}</span></div>

@@ -22,6 +22,7 @@ use App\Livewire\Rotas;
 use App\Livewire\Viagens;
 use App\Livewire\TabelasFrete;
 use App\Livewire\Usuarios;
+use App\Livewire\ValesPedagio;
 use App\Livewire\Veiculos;
 use App\Livewire\Vencimentos;
 use Illuminate\Support\Facades\Route;
@@ -159,6 +160,13 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/mdfe', Mdfe\Index::class)->name('mdfe.index');
     Route::get('/mdfe/novo', Mdfe\Formulario::class)->name('mdfe.criar');
     Route::get('/mdfe/{mdfe}', Mdfe\Formulario::class)->name('mdfe.editar');
+
+    /*
+     * 4030 — Vale-pedágio (grupo valePed do MDF-e). Um por veículo.
+     */
+    Route::get('/vale-pedagio', ValesPedagio\Index::class)->name('vale-pedagio.index');
+    Route::get('/vale-pedagio/novo', ValesPedagio\Formulario::class)->name('vale-pedagio.criar');
+    Route::get('/vale-pedagio/{vale}', ValesPedagio\Formulario::class)->name('vale-pedagio.editar');
 
     /*
      * 9020 — Usuários. Convidados pelo gestor; papéis via spatie/permission.

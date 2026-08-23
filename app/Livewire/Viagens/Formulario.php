@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Viagens;
 
 use App\Models\Composicao;
+use App\Models\Cte;
 use App\Models\Filial;
 use App\Models\Motorista;
 use App\Models\Municipio;
@@ -60,6 +61,9 @@ class Formulario extends Component
     // Consolidados
     public string $peso_total = '';
     public string $valor_carga = '';
+
+    // CT-e a vincular (N:N)
+    public ?int $cteParaVincular = null;
 
     // Custos denormalizados
     public string $custo_combustivel = '';
@@ -229,6 +233,53 @@ class Formulario extends Component
         }
 
         return $pontos;
+    }
+
+    /** CT-e já vinculados a esta viagem. */
+    #[Computed]
+    public function ctesVinculados()
+    {
+        if (! $this->viagem?->exists) {
+            return collect();
+        }
+
+        return $this->viagem->ctes()->with(['tomador', 'municipioFim'])->get();
+    }
+
+    /** CT-e autorizados que ainda podem ser vinculados. */
+    #[Computed]
+    public function ctesDisponiveis()
+    {
+        if (! $this->viagem?->exists) {
+            return collect();
+        }
+
+        return Cte::query()->autorizados()
+            ->whereDoesntHave('viagens', fn ($q) => $q->where('viagens.id', $this->viagem->id))
+            ->with('tomador')->orderByDesc('emissao')->get();
+    }
+
+    public function vincularCte(int $cteId): void
+    {
+        $this->authorize('update', $this->viagem);
+
+        $seq = (int) ($this->viagem->ctes()->max('sequencia') ?? 0) + 1;
+        $this->viagem->ctes()->syncWithoutDetaching([$cteId => ['sequencia' => $seq, 'papel' => 'principal']]);
+        $this->viagem->recalcularReceitaDosCtes();
+        $this->viagem->refresh();
+
+        session()->flash('sucesso', 'CT-e vinculado — receita da viagem atualizada.');
+    }
+
+    public function desvincularCte(int $cteId): void
+    {
+        $this->authorize('update', $this->viagem);
+
+        $this->viagem->ctes()->detach($cteId);
+        $this->viagem->recalcularReceitaDosCtes();
+        $this->viagem->refresh();
+
+        session()->flash('sucesso', 'CT-e desvinculado — receita da viagem atualizada.');
     }
 
     /** Traçado pela estrada da rota escolhida (se calculado). */

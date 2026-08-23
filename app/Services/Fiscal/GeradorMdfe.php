@@ -47,7 +47,11 @@ class GeradorMdfe
             $ufIni = $viagem->municipioOrigem?->uf;
             $ufFim = $viagem->municipioDestino?->uf;
 
-            return Mdfe::create([
+            $ctes = $viagem->ctes()->get();
+            $pesoTotal = $ctes->isNotEmpty() ? (float) $ctes->sum('peso_bruto') : (float) ($viagem->peso_total ?? 0);
+            $valorTotal = $ctes->isNotEmpty() ? (float) $ctes->sum('valor_mercadoria') : (float) ($viagem->valor_carga ?? 0);
+
+            $mdfe = Mdfe::create([
                 'filial_id' => $viagem->filial_id,
                 'viagem_id' => $viagem->id,
                 'modelo' => '58',
@@ -63,14 +67,28 @@ class GeradorMdfe
                 'veiculo_tracao_id' => $viagem->veiculo_tracao_id,
                 'reboques' => $reboques ?: null,
                 'condutores' => $condutores ?: null,
-                'peso_bruto_total' => $viagem->peso_total ?? 0,
-                'valor_carga_total' => $viagem->valor_carga ?? 0,
+                'peso_bruto_total' => $pesoTotal,
+                'valor_carga_total' => $valorTotal,
                 'unidade_peso' => 1,
                 'categoria_comb_veicular' => $eixos > 0 ? (int) CategoriaCombinacaoVeicular::paraEixos($eixos)->value : null,
                 'status' => 'rascunho',
                 'ambiente' => (int) config('fiscal.sefaz.ambiente', 2),
                 'idempotency_key' => (string) Str::uuid(),
             ]);
+
+            // Anexa os CT-e vinculados à viagem como documentos do manifesto.
+            foreach ($ctes as $cte) {
+                $mdfe->documentos()->create([
+                    'tipo' => 'cte',
+                    'chave' => $cte->chave,
+                    'cte_id' => $cte->id,
+                    'municipio_descarregamento_id' => $cte->municipio_fim_id,
+                    'peso' => $cte->peso_bruto,
+                    'valor' => $cte->valor_total_servico,
+                ]);
+            }
+
+            return $mdfe;
         });
     }
 
