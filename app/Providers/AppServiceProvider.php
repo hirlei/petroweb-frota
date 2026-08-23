@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Services\Fiscal\Sefaz\FakeSefazGateway;
+use App\Services\Fiscal\Sefaz\SefazGateway;
 use App\Services\Roteirizacao\Roteirizador;
 use App\Services\Roteirizacao\RoteirizadorOrs;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +26,15 @@ class AppServiceProvider extends ServiceProvider
                 perfil: (string) $cfg['perfil'],
                 timeout: (int) $cfg['timeout'],
             );
+        });
+
+        // Gateway SEFAZ. Enquanto a integração real não entra, o fake responde
+        // em homologação — o driver decide (config/fiscal.php).
+        $this->app->bind(SefazGateway::class, function () {
+            return match (config('fiscal.sefaz.driver', 'fake')) {
+                // 'real' => new SefazGatewayReal(...), // entra na sprint fiscal
+                default => new FakeSefazGateway(),
+            };
         });
     }
 

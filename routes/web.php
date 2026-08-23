@@ -5,11 +5,13 @@ declare(strict_types=1);
 use App\Http\Controllers\RastreamentoWebhookController;
 use App\Livewire\Abastecimentos;
 use App\Livewire\Composicoes;
+use App\Livewire\Cte;
 use App\Livewire\Despesas;
 use App\Livewire\Entregas;
 use App\Livewire\Filiais;
 use App\Livewire\Inicio;
 use App\Livewire\Manutencao;
+use App\Livewire\Mdfe;
 use App\Livewire\Motoristas;
 use App\Livewire\Ocorrencias;
 use App\Livewire\OrdensColeta;
@@ -143,6 +145,20 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/ocorrencias', Ocorrencias\Index::class)->name('ocorrencias.index');
     Route::get('/ocorrencias/nova', Ocorrencias\Formulario::class)->name('ocorrencias.criar');
     Route::get('/ocorrencias/{ocorrencia}', Ocorrencias\Formulario::class)->name('ocorrencias.editar');
+
+    /*
+     * 4010 — CT-e (modelo 57). Nasce da ordem de coleta.
+     */
+    Route::get('/cte', Cte\Index::class)->name('cte.index');
+    Route::get('/cte/novo', Cte\Formulario::class)->name('cte.criar');
+    Route::get('/cte/{cte}', Cte\Formulario::class)->name('cte.editar');
+
+    /*
+     * 4020 — MDF-e (modelo 58). Nasce da viagem; RN-03.
+     */
+    Route::get('/mdfe', Mdfe\Index::class)->name('mdfe.index');
+    Route::get('/mdfe/novo', Mdfe\Formulario::class)->name('mdfe.criar');
+    Route::get('/mdfe/{mdfe}', Mdfe\Formulario::class)->name('mdfe.editar');
 
     /*
      * 9020 — Usuários. Convidados pelo gestor; papéis via spatie/permission.
