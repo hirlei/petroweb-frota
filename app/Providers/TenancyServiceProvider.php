@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events;
 use Stancl\Tenancy\Jobs;
@@ -73,6 +75,31 @@ class TenancyServiceProvider extends ServiceProvider
     {
         $this->registrarEventos();
         $this->registrarAtalhosDeMiddleware();
+        $this->livewireNoTenant();
+    }
+
+    /**
+     * Rota de atualização do Livewire DENTRO da tenancy (02/10/2026).
+     *
+     * Por padrão o Livewire registra o POST de atualização no grupo `web`,
+     * sem tenancy: a sessão era lida do banco CENTRAL, o token CSRF não batia
+     * com o do tenant e toda interação (digitar na busca, filtrar, salvar)
+     * voltava "This page has expired" (419). É o mesmo bug do login com
+     * Route::view (ver CLAUDE.md) — a cura é a mesma: o grupo `tenant`, que
+     * inicializa a tenancy ANTES do StartSession. O painel central não usa
+     * Livewire, então não há rota de update para ele.
+     */
+    private function livewireNoTenant(): void
+    {
+        // Caminho PRÓPRIO: o Livewire 4 continua registrando a rota padrão no
+        // caminho dele e responde 404 nela quando existe rota customizada — se
+        // usássemos o mesmo caminho, a padrão casaria primeiro. O JS do Livewire
+        // descobre sozinho o caminho customizado. O Livewire acrescenta o grupo
+        // `web` por conta própria; o Laravel remove os middlewares repetidos e
+        // a prioridade (bootstrap/app.php) mantém a tenancy antes da sessão.
+        Livewire::setUpdateRoute(
+            fn ($handle) => Route::post('/livewire/frota/update', $handle)->middleware('tenant'),
+        );
     }
 
     private function registrarEventos(): void
