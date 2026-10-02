@@ -75,6 +75,15 @@ return [
         ],
     ],
     [
+        'key'   => 'financeiro',
+        'icon'  => 'wallet',
+        'label' => 'Financeiro',
+        'items' => [
+            ['codigo' => '5010', 'label' => 'Faturas',          'icon' => 'file-text', 'route' => 'faturas.index',        'can' => 'fatura.consultar'],
+            ['codigo' => '5020', 'label' => 'Contas a receber', 'icon' => 'wallet',    'route' => 'contas-receber.index', 'can' => 'fatura.consultar'],
+        ],
+    ],
+    [
         'key'   => 'configuracoes',
         'icon'  => 'settings',
         'label' => 'Configurações',

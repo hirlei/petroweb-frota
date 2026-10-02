@@ -45,6 +45,8 @@ class PermissoesSeeder extends Seeder
         'cte.consultar', 'cte.emitir', 'cte.cancelar', 'cte.inutilizar',
         'mdfe.consultar', 'mdfe.emitir', 'mdfe.encerrar',
         'certificado.gerenciar',
+        // Financeiro (5010 Faturas, 5020 Contas a receber)
+        'fatura.consultar', 'fatura.gerenciar', 'recebimento.registrar',
         // Configuração
         'filial.gerenciar', 'usuario.gerenciar', 'permissao.gerenciar',
     ];
@@ -76,11 +78,13 @@ class PermissoesSeeder extends Seeder
             'viagem.consultar', 'despesa-viagem.consultar', 'despesa-viagem.gerenciar',
             'cte.consultar', 'mdfe.consultar',
             'abastecimento.consultar', 'manutencao.consultar',
+            'fatura.consultar', 'fatura.gerenciar', 'recebimento.registrar',
         ],
         'Consulta' => [
             'pessoa.consultar', 'produto.consultar', 'veiculo.consultar',
             'motorista.consultar', 'viagem.consultar', 'despesa-viagem.consultar',
             'entrega.consultar', 'cte.consultar', 'mdfe.consultar',
+            'fatura.consultar',
         ],
     ];
 

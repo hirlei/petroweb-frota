@@ -10,6 +10,7 @@ use App\Models\Mdfe;
 use App\Models\Motorista;
 use App\Models\Ocorrencia;
 use App\Models\OrdemColeta;
+use App\Models\TituloReceber;
 use App\Models\User;
 use App\Models\VeiculoDocumento;
 use Illuminate\Support\Carbon;
@@ -210,6 +211,7 @@ final class Navegacao
             ->whereNull('canhoto_path')->whereNull('assinatura_path')->where('tipo_comprovacao', '!=', 'evento_eletronico')->count());
         $conta('3040', 'pendente', '{n} ocorrência(s) aberta(s)', fn () => Ocorrencia::query()->where('status', '!=', 'resolvida')->count());
         $conta('3010', 'pendente', '{n} ordem(ns) de coleta aberta(s)', fn () => OrdemColeta::query()->where('status', 'aberta')->count());
+        $conta('5020', 'urgente', '{n} parcela(s) a receber vencida(s)', fn () => TituloReceber::query()->vencidos()->count());
         try {
             $vencidos = self::vencidos();
             $conta('2040', $vencidos > 0 ? 'urgente' : 'pendente', '{n} documento(s) vencido(s) ou vencendo em 15 dias',
