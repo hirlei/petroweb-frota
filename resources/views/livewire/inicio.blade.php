@@ -1,340 +1,373 @@
 {{--
-    Tela inicial — dashboard operacional (conforme mockup aprovado).
-    KPIs com micro-visuais, faixa de gráficos (status da frota, consumo, custo),
-    conformidade em semáforo, ocorrências, ações rápidas, próximas manutenções e
-    atalhos por módulo. Tudo isolado por empresa pelo EmpresaScope.
+    Dashboard — a mesma tela inicial do ERP (02/10/2026, mockup "Frota igual ao ERP").
+    Três andares, uma pergunta por andar:
+      1. COMO ESTOU AGORA?  cartões curtos (título 10px, valor 21px, uma linha de contexto, link/barra);
+      2. VIAGENS EM ANDAMENTO  (no lugar do "Nível dos tanques" do ERP);
+      3. ANÁLISES + ATENÇÃO  barras horizontais (azul #2a78d6 / verde #1baf7a, como no ERP).
 --}}
 @php
-    $catIcones = ['veiculo' => 'truck', 'motorista' => 'id-card'];
-    $venc = $this->vencimentosResumo;
-    $custo = $this->custoMes;
-    $cons = $this->consumo;
+    $c = $this->cartoes;
+    $j = $this->janela;
+    $user = auth()->user();
+    $verde = 'text-green-700 dark:text-green-400';
+    $vermelho = 'text-red-700 dark:text-red-400';
+    $fmt = fn ($v, $d = 2) => number_format((float) $v, $d, ',', '.');
+    $andamento = $this->viagensAndamento;
+    $alertas = $this->alertas();
+    $corSit = ['ok' => $verde, 'dn' => $vermelho, 'wa' => 'text-amber-700 dark:text-amber-400'];
+    $barraSit = ['ok' => '#2a78d6', 'dn' => '#dc2626', 'wa' => '#d97706'];
 @endphp
-<div>
-    <div class="mb-4 flex items-start gap-4 flex-wrap">
-        <div class="min-w-[240px] flex-1">
-            <h1 class="text-2xl font-extrabold tracking-tight text-text">PetroWeb Frota</h1>
-            <p class="mt-0.5 text-text-secondary">Gestão de transporte rodoviário de cargas — {{ \App\Support\TenantContext::empresa()?->razao_social ?? 'sem empresa no contexto' }}</p>
+<div class="space-y-4">
+
+    {{-- ═══════════ Topo: contexto, saudação, período ═══════════ --}}
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
+        <div>
+            <p class="text-[11px] text-text-muted uppercase tracking-wider mb-1">
+                Dashboard · {{ \App\Support\TenantContext::filial()?->nome_fantasia ?? 'Todas as filiais' }}
+            </p>
+            <h1 class="text-xl font-semibold text-text">Olá, {{ $user?->name }}</h1>
+            <p class="text-sm text-text-secondary">
+                {{ \Illuminate\Support\Str::ucfirst(now()->locale('pt_BR')->isoFormat('dddd, DD [de] MMMM [de] YYYY')) }}
+                @if ($this->totalAndamento > 0 && Route::has('viagens.index'))
+                    · <a href="{{ route('viagens.index') }}" class="inline-flex items-center gap-1.5 text-primary font-medium hover:underline">
+                        <span class="relative flex h-1.5 w-1.5" aria-hidden="true">
+                            <span class="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
+                        </span>
+                        {{ $this->totalAndamento }} {{ $this->totalAndamento === 1 ? 'viagem em andamento' : 'viagens em andamento' }}
+                    </a>
+                @endif
+            </p>
         </div>
-    </div>
 
-    {{-- ── KPIs com micro-visuais ── --}}
-    <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {{-- Frota ativa --}}
-        @php $fa = $this->frota; $pctFrota = $fa['total'] ? round($fa['ativos'] / $fa['total'] * 100) : 0; @endphp
-        <x-card padding="none" class="relative overflow-hidden">
-            <div class="px-4 py-3.5">
-                <div class="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">Frota ativa</div>
-                <div class="mt-1 text-3xl font-bold tabular-nums text-text">{{ $fa['ativos'] }}</div>
-                <div class="mt-0.5 text-[11.5px] text-text-secondary">{{ $fa['total'] }} no total · {{ $fa['tracao'] }} tração @if($fa['manutencao'])· <span class="text-amber-700">{{ $fa['manutencao'] }} em manutenção</span>@endif</div>
-            </div>
-            <svg class="absolute right-3.5 top-3.5" width="44" height="44" viewBox="0 0 42 42">
-                <circle cx="21" cy="21" r="15.9" fill="none" stroke="rgb(var(--color-border))" stroke-width="6"/>
-                <circle cx="21" cy="21" r="15.9" fill="none" stroke="rgb(var(--color-success))" stroke-width="6" stroke-linecap="round"
-                        stroke-dasharray="{{ $pctFrota }} {{ 100 - $pctFrota }}" stroke-dashoffset="25"/>
-            </svg>
-        </x-card>
-
-        {{-- Motoristas aptos --}}
-        @php $mo = $this->motoristas; $pctMot = $mo['total'] ? round($mo['aptos'] / $mo['total'] * 100) : 0; $motOk = $mo['aptos'] >= $mo['total']; @endphp
-        <x-card padding="none" class="relative overflow-hidden">
-            <div class="px-4 py-3.5">
-                <div class="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">Motoristas aptos</div>
-                <div class="mt-1 text-3xl font-bold tabular-nums {{ $motOk ? 'text-green-700' : 'text-amber-700' }}">{{ $mo['aptos'] }}/{{ $mo['total'] }}</div>
-                <div class="mt-0.5 text-[11.5px] text-text-secondary">{{ $motOk ? 'Todos aptos a viajar' : ($mo['total'] - $mo['aptos']) . ' com pendência' }}</div>
-            </div>
-            <svg class="absolute right-3.5 top-3.5" width="44" height="44" viewBox="0 0 42 42">
-                <circle cx="21" cy="21" r="15.9" fill="none" stroke="rgb(var(--color-border))" stroke-width="6"/>
-                <circle cx="21" cy="21" r="15.9" fill="none" stroke="rgb(var(--color-{{ $motOk ? 'success' : 'warning' }}))" stroke-width="6" stroke-linecap="round"
-                        stroke-dasharray="{{ $pctMot }} {{ 100 - $pctMot }}" stroke-dashoffset="25"/>
-            </svg>
-        </x-card>
-
-        {{-- Vencimentos --}}
-        @php $vencTotal = $venc['vencidos'] + $venc['ate30']; $vmax = max($venc['vencidos'], $venc['ate30'], $venc['ate60'], 1); @endphp
-        <x-card padding="none" class="relative overflow-hidden {{ $venc['vencidos'] > 0 ? 'border-danger/40' : '' }}">
-            <div class="px-4 py-3.5">
-                <div class="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">Vencimentos</div>
-                <div class="mt-1 text-3xl font-bold tabular-nums {{ $venc['vencidos'] > 0 ? 'text-danger' : 'text-text' }}">{{ $vencTotal }}</div>
-                <div class="mt-0.5 text-[11.5px] text-text-secondary">@if($venc['vencidos'])<span class="text-danger">{{ $venc['vencidos'] }} vencidos</span> · @endif{{ $venc['ate30'] }} em 30 dias</div>
-            </div>
-            <div class="absolute right-3.5 top-4 flex items-end gap-1" style="height:30px">
-                <div class="w-2 rounded-sm bg-danger" style="height:{{ max(round($venc['vencidos']/$vmax*30),4) }}px"></div>
-                <div class="w-2 rounded-sm bg-warning" style="height:{{ max(round($venc['ate30']/$vmax*30),4) }}px"></div>
-                <div class="w-2 rounded-sm bg-info" style="height:{{ max(round($venc['ate60']/$vmax*30),4) }}px"></div>
-            </div>
-        </x-card>
-
-        {{-- Ocorrências abertas --}}
-        @php $oc = $this->ocorrencias; @endphp
-        <x-card padding="none" class="relative overflow-hidden">
-            <div class="px-4 py-3.5">
-                <div class="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">Ocorrências abertas</div>
-                <div class="mt-1 text-3xl font-bold tabular-nums {{ $oc['abertas'] > 0 ? 'text-danger' : 'text-text' }}">{{ $oc['abertas'] }}</div>
-                <div class="mt-0.5 text-[11.5px] text-text-secondary">R$ {{ number_format($oc['prejuizo'], 2, ',', '.') }} em prejuízo</div>
-            </div>
-            <div class="absolute right-3.5 top-3.5">
-                <x-icon name="alert-triangle" class="h-6 w-6 {{ $oc['abertas'] > 0 ? 'text-danger' : 'text-text-muted' }}" />
-            </div>
-        </x-card>
-    </div>
-
-    {{-- ── Faixa de gráficos ── --}}
-    <div class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {{-- Status da frota --}}
-        <x-card padding="none" class="overflow-hidden">
-            <div class="flex items-center gap-2 border-b border-border px-5 py-3.5">
-                <x-icon name="truck" class="h-4 w-4 text-text-secondary" />
-                <h2 class="text-sm font-semibold text-text">Status da frota</h2>
-            </div>
-            <div class="flex items-center gap-5 px-5 py-4">
-                <svg width="104" height="104" viewBox="0 0 42 42" class="flex-shrink-0">
-                    <circle cx="21" cy="21" r="15.9" fill="none" stroke="rgb(var(--color-border))" stroke-width="7"/>
-                    @php $acc = 0; @endphp
-                    @foreach ($this->frotaSegmentos as $seg)
-                        @if ($seg['pct'] > 0)
-                            <circle cx="21" cy="21" r="15.9" fill="none" stroke="{{ $seg['cor'] }}" stroke-width="7"
-                                    stroke-dasharray="{{ $seg['pct'] }} {{ 100 - $seg['pct'] }}" stroke-dashoffset="{{ 25 - $acc }}"/>
-                            @php $acc += $seg['pct']; @endphp
-                        @endif
-                    @endforeach
-                    <text x="21" y="20.5" text-anchor="middle" font-size="9" font-weight="800" fill="rgb(var(--color-text))">{{ $fa['total'] }}</text>
-                    <text x="21" y="26.5" text-anchor="middle" font-size="3.4" fill="rgb(var(--color-text-muted))">veículos</text>
-                </svg>
-                <div class="flex flex-col gap-2">
-                    @foreach ($this->frotaSegmentos as $seg)
-                        <div class="flex items-center gap-2 text-xs text-text-secondary">
-                            <span class="h-2.5 w-2.5 rounded" style="background:{{ $seg['cor'] }}"></span>
-                            {{ $seg['qtd'] }} {{ $seg['label'] }}
-                        </div>
-                    @endforeach
-                    @if ($fa['terceiro'])
-                        <div class="mt-1 text-[11px] text-text-muted">{{ $fa['terceiro'] }} de terceiro</div>
-                    @endif
-                </div>
-            </div>
-        </x-card>
-
-        {{-- Consumo km/L --}}
-        <x-card padding="none" class="overflow-hidden">
-            <div class="flex items-center gap-2 border-b border-border px-5 py-3.5">
-                <x-icon name="fuel" class="h-4 w-4 text-text-secondary" />
-                <h2 class="text-sm font-semibold text-text">Consumo km/L @if($cons['veiculo'])<span class="text-text-muted">· {{ $cons['veiculo'] }}</span>@endif</h2>
-            </div>
-            <div class="px-5 py-4">
-                @if (empty($cons['serie']))
-                    <x-empty-state icon="fuel" title="Sem leituras" description="Lance abastecimentos de tanque cheio para calcular o consumo." />
-                @else
-                    @php
-                        $medias = array_map(fn ($b) => $b['media'], $cons['serie']);
-                        $escala = max(max($medias), $cons['meta'] ?? 0) * 1.15 ?: 1;
-                        $plot = 92;
-                    @endphp
-                    <div class="relative flex items-end justify-around gap-3" style="height:{{ $plot }}px">
-                        @if ($cons['meta'])
-                            @php $metaY = round(($cons['meta'] / $escala) * $plot); @endphp
-                            <div class="pointer-events-none absolute inset-x-0 border-t border-dashed border-text-muted" style="bottom:{{ $metaY }}px">
-                                <span class="absolute -top-4 right-0 text-[10px] text-text-muted">meta {{ number_format($cons['meta'], 1, ',', '.') }}</span>
-                            </div>
-                        @endif
-                        @foreach ($cons['serie'] as $b)
-                            @php $h = max(round(($b['media'] / $escala) * $plot), 6); @endphp
-                            <div class="flex flex-1 flex-col items-center justify-end gap-1" style="height:{{ $plot }}px">
-                                <span class="text-[11px] font-semibold tabular-nums {{ $b['alerta'] ? 'text-danger' : 'text-text' }}">{{ number_format($b['media'], 2, ',', '.') }}</span>
-                                <div class="w-full rounded-t" style="height:{{ $h }}px;background:rgb(var(--color-{{ $b['alerta'] ? 'danger' : 'secondary' }}))"></div>
-                            </div>
-                        @endforeach
-                    </div>
-                    <div class="mt-1.5 flex justify-around gap-3">
-                        @foreach ($cons['serie'] as $b)
-                            <span class="flex-1 text-center text-[10px] text-text-muted">{{ $b['label'] }}</span>
-                        @endforeach
-                    </div>
-                    @php $ultimo = end($cons['serie']); @endphp
-                    @if ($ultimo && $ultimo['alerta'])
-                        <div class="mt-2 flex items-center gap-1.5 text-xs text-danger">
-                            <x-icon name="alert-triangle" class="h-3.5 w-3.5" /> Último abastecimento abaixo da meta — alerta de desvio
-                        </div>
-                    @endif
-                @endif
-            </div>
-        </x-card>
-
-        {{-- Custo do mês --}}
-        <x-card padding="none" class="overflow-hidden">
-            <div class="flex items-center gap-2 border-b border-border px-5 py-3.5">
-                <x-icon name="layout-dashboard" class="h-4 w-4 text-text-secondary" />
-                <h2 class="text-sm font-semibold text-text">Custo do mês</h2>
-            </div>
-            <div class="px-5 py-4">
-                <div class="text-2xl font-bold tabular-nums tracking-tight text-text">R$ {{ number_format($custo['total'], 2, ',', '.') }}</div>
-                @php $tot = $custo['total'] ?: 1; $pComb = round($custo['combustivel'] / $tot * 100); @endphp
-                <div class="my-3 flex h-3 gap-0.5 overflow-hidden rounded-md">
-                    <div style="width:{{ $pComb }}%;background:rgb(var(--color-secondary))"></div>
-                    <div style="width:{{ 100 - $pComb }}%;background:rgb(var(--color-primary))"></div>
-                </div>
-                <div class="flex flex-wrap gap-x-4 gap-y-1">
-                    <span class="flex items-center gap-1.5 text-xs text-text-secondary"><span class="h-2.5 w-2.5 rounded" style="background:rgb(var(--color-secondary))"></span>Combustível · R$ {{ number_format($custo['combustivel'], 0, ',', '.') }}</span>
-                    <span class="flex items-center gap-1.5 text-xs text-text-secondary"><span class="h-2.5 w-2.5 rounded" style="background:rgb(var(--color-primary))"></span>Manutenção · R$ {{ number_format($custo['manutencao'], 0, ',', '.') }}</span>
-                </div>
-                <div class="mt-4 flex items-center justify-between rounded-md bg-surface-elevated px-3 py-2.5">
-                    <span class="text-sm text-text-secondary">Custo por km (mês)</span>
-                    <span class="font-mono text-sm font-semibold text-text">{{ $custo['rs_km'] !== null ? 'R$ ' . number_format($custo['rs_km'], 2, ',', '.') : '—' }}</span>
-                </div>
-                <p class="mt-2 text-[11px] text-text-muted">Km por proxy dos abastecimentos de tanque cheio. O R$/km definitivo virá das viagens.</p>
-            </div>
-        </x-card>
-    </div>
-
-    {{-- ── Conformidade + Ocorrências ── --}}
-    <div class="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_1fr] items-start">
-        <x-card padding="none" class="overflow-hidden">
-            <div class="flex items-center gap-2 border-b border-border px-5 py-3.5">
-                <x-icon name="calendar" class="h-4 w-4 text-text-secondary" />
-                <h2 class="text-sm font-semibold text-text">Conformidade — o que vence primeiro</h2>
-                <span class="flex-1"></span>
-                @if (\Illuminate\Support\Facades\Route::has('vencimentos.index'))
-                    <a href="{{ route('vencimentos.index') }}" wire:navigate class="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">Ver painel <x-icon name="chevron-right" class="h-3.5 w-3.5" /></a>
-                @endif
-            </div>
-            {{-- semáforo --}}
-            <div class="grid grid-cols-3 gap-2.5 px-5 py-4">
-                <div class="rounded-lg py-3 text-center" style="background:rgb(var(--color-danger) / .12)">
-                    <div class="text-2xl font-bold tabular-nums text-danger">{{ $venc['vencidos'] }}</div>
-                    <div class="text-[11px] font-semibold text-danger">Vencidos</div>
-                </div>
-                <div class="rounded-lg py-3 text-center" style="background:rgb(var(--color-warning) / .14)">
-                    <div class="text-2xl font-bold tabular-nums" style="color:rgb(var(--color-warning))">{{ $venc['ate30'] }}</div>
-                    <div class="text-[11px] font-semibold" style="color:rgb(var(--color-warning))">Em 30 dias</div>
-                </div>
-                <div class="rounded-lg py-3 text-center" style="background:rgb(var(--color-info) / .12)">
-                    <div class="text-2xl font-bold tabular-nums text-info">{{ $venc['ate60'] }}</div>
-                    <div class="text-[11px] font-semibold text-info">31–60 dias</div>
-                </div>
-            </div>
-            @if ($this->proximosVencimentos->isNotEmpty())
-                <div class="divide-y divide-border border-t border-border">
-                    @foreach ($this->proximosVencimentos as $item)
-                        @php
-                            $dias = $item['dias'];
-                            $cor = $dias < 0 ? 'text-danger' : ($dias <= 30 ? 'text-amber-700' : 'text-text-secondary');
-                            $dot = $dias < 0 ? 'bg-danger' : ($dias <= 30 ? 'bg-warning' : 'bg-info');
-                            $txt = $dias < 0 ? 'Vencido há ' . abs($dias) . 'd' : ($dias === 0 ? 'Vence hoje' : 'Vence em ' . $dias . 'd');
-                        @endphp
-                        <div class="flex items-center gap-3 px-5 py-2.5">
-                            <x-icon :name="$catIcones[$item['categoria']] ?? 'calendar'" class="h-4 w-4 flex-shrink-0 text-text-muted" />
-                            <div class="min-w-0 flex-1">
-                                <div class="truncate text-sm font-medium text-text">{{ $item['referencia'] }}</div>
-                                <div class="text-xs text-text-muted">{{ $item['documento'] }}</div>
-                            </div>
-                            @if ($item['bloqueia'] && $dias < 0)<x-badge variant="danger" class="text-[10px]">Bloqueia</x-badge>@endif
-                            <div class="flex items-center gap-1.5 whitespace-nowrap text-xs font-medium {{ $cor }}"><span class="h-1.5 w-1.5 rounded-full {{ $dot }}"></span>{{ $txt }}</div>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
-        </x-card>
-
-        <x-card padding="none" class="overflow-hidden">
-            <div class="flex items-center gap-2 border-b border-border px-5 py-3.5">
-                <x-icon name="alert-triangle" class="h-4 w-4 text-text-secondary" />
-                <h2 class="text-sm font-semibold text-text">Ocorrências recentes</h2>
-                <span class="flex-1"></span>
-                @if (\Illuminate\Support\Facades\Route::has('ocorrencias.index'))
-                    <a href="{{ route('ocorrencias.index') }}" wire:navigate class="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">Ver todas <x-icon name="chevron-right" class="h-3.5 w-3.5" /></a>
-                @endif
-            </div>
-            @if ($this->ocorrenciasRecentes->isEmpty())
-                <x-empty-state icon="check" title="Sem ocorrências" description="Operação sem intercorrências registradas." />
-            @else
-                <div class="divide-y divide-border">
-                    @foreach ($this->ocorrenciasRecentes as $ocr)
-                        <div class="flex items-start gap-3 px-5 py-2.5">
-                            <x-badge :variant="config('ocorrencias.tipos_cores.' . $ocr->tipo, 'gray')" class="mt-0.5 text-[10px]">{{ config('ocorrencias.tipos.' . $ocr->tipo, $ocr->tipo) }}</x-badge>
-                            <div class="min-w-0 flex-1">
-                                <div class="truncate text-sm text-text">{{ $ocr->descricao }}</div>
-                                <div class="mt-0.5 text-xs text-text-muted">{{ $ocr->data_hora?->format('d/m/Y') }}@if($ocr->valor_prejuizo) · R$ {{ number_format((float) $ocr->valor_prejuizo, 2, ',', '.') }}@endif</div>
-                            </div>
-                            <x-badge :variant="config('ocorrencias.status_cores.' . $ocr->status, 'gray')" class="text-[10px]">{{ config('ocorrencias.status.' . $ocr->status, $ocr->status) }}</x-badge>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
-        </x-card>
-    </div>
-
-    {{-- ── Ações rápidas ── --}}
-    @php
-        $acoes = [
-            ['veiculos.criar', 'truck', 'Novo veículo', 'Cadastrar unidade'],
-            ['abastecimentos.criar', 'fuel', 'Lançar abastecimento', 'Registrar consumo'],
-            ['ocorrencias.criar', 'alert-triangle', 'Nova ocorrência', 'Avaria, multa, atraso'],
-            ['manutencao.criar', 'wrench', 'Abrir OS', 'Manutenção'],
-        ];
-    @endphp
-    <div class="mb-4">
-        <div class="mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">Ações rápidas</div>
-        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            @foreach ($acoes as [$rota, $icone, $titulo, $desc])
-                @php $existe = \Illuminate\Support\Facades\Route::has($rota); @endphp
-                <a href="{{ $existe ? route($rota) : '#' }}" @if($existe) wire:navigate @endif
-                   class="group flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors {{ $existe ? 'hover:border-primary hover:bg-primary-soft' : 'cursor-not-allowed opacity-50' }}">
-                    <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary-soft text-amber-700"><x-icon name="{{ $icone }}" class="h-4 w-4" /></span>
-                    <div>
-                        <div class="text-sm font-semibold text-text">{{ $titulo }}</div>
-                        <div class="text-[11px] text-text-muted">{{ $desc }}</div>
-                    </div>
-                </a>
+        <div class="flex gap-1 text-xs" role="group" aria-label="Período">
+            @foreach ($this->periodos() as $valor => $rotulo)
+                <button type="button" wire:click="usarPeriodo('{{ $valor }}')" @if ($periodo === $valor) aria-current="true" @endif
+                        class="flex-1 lg:flex-none text-center px-3 py-1.5 rounded-md transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary {{ $periodo === $valor ? 'bg-primary text-white font-semibold' : 'bg-surface-elevated text-text-secondary hover:bg-surface border border-border' }}">
+                    {{ $rotulo }}
+                </button>
             @endforeach
         </div>
     </div>
 
-    {{-- ── Próximas manutenções ── --}}
-    @if ($this->proximasManutencoes->isNotEmpty())
-        <x-card padding="none" class="mb-4 overflow-hidden">
-            <div class="flex items-center gap-2 border-b border-border px-5 py-3.5">
-                <x-icon name="wrench" class="h-4 w-4 text-text-secondary" />
-                <h2 class="text-sm font-semibold text-text">Manutenções em andamento</h2>
-                <span class="flex-1"></span>
-                @if (\Illuminate\Support\Facades\Route::has('manutencao.index'))
-                    <a href="{{ route('manutencao.index') }}" wire:navigate class="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">Ver todas <x-icon name="chevron-right" class="h-3.5 w-3.5" /></a>
+    {{-- ═══════════ ANDAR 1 — Como estou agora? ═══════════ --}}
+    <div>
+        <h2 class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">{{ $j['rotulo'] }}</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3" style="font-variant-numeric:tabular-nums">
+
+            {{-- Faturamento (CT-e autorizados) --}}
+            <div class="bg-surface border border-border rounded-xl" style="padding:12px 14px">
+                <p class="text-text-muted uppercase tracking-wide" style="font-size:10px;font-weight:600">Faturamento</p>
+                <p class="text-text" style="font-size:21px;font-weight:500;line-height:1.25;margin-top:2px">R$ {{ $fmt($c['faturamento']['valor']) }}</p>
+                <p class="text-text-secondary truncate" style="font-size:11px">
+                    {{ $c['faturamento']['qtd'] }} CT-e
+                    @if ($c['faturamento']['comp'] !== null)
+                        · <span class="{{ $c['faturamento']['comp'] >= 0 ? $verde : $vermelho }}" style="font-weight:600">{{ $c['faturamento']['comp'] >= 0 ? '+' : '' }}{{ $fmt($c['faturamento']['comp'], 1) }}% {{ $j['vs'] }}</span>
+                    @endif
+                </p>
+                @if (Route::has('cte.index'))
+                    <a href="{{ route('cte.index') }}" class="text-primary hover:underline" style="font-size:10px;font-weight:700">CT-e →</a>
                 @endif
             </div>
-            <div class="divide-y divide-border">
-                @foreach ($this->proximasManutencoes as $os)
-                    <div class="flex items-center gap-3 px-5 py-2.5">
-                        <x-icon name="truck" class="h-4 w-4 flex-shrink-0 text-text-muted" />
-                        <div class="min-w-0 flex-1">
-                            <div class="truncate text-sm font-medium text-text">{{ $os->veiculo?->placaFormatada() ?? '—' }} · {{ $os->numero }} · {{ config('manutencao.tipos.' . $os->tipo, $os->tipo) }}</div>
-                            <div class="truncate text-xs text-text-muted">{{ $os->observacoes ?? 'Aberta em ' . $os->abertura?->format('d/m/Y') }}</div>
+
+            {{-- Margem das viagens --}}
+            <div class="bg-surface border border-border rounded-xl" style="padding:12px 14px" title="Receita dos CT-e menos os custos das viagens que saíram no período">
+                <p class="text-text-muted uppercase tracking-wide" style="font-size:10px;font-weight:600">Margem das viagens</p>
+                @if ($c['margem']['pct'] === null)
+                    <p class="text-text-muted" style="font-size:21px;font-weight:500;line-height:1.25;margin-top:2px">—</p>
+                    <p class="text-text-muted truncate" style="font-size:11px">Nenhuma viagem com receita no período</p>
+                @else
+                    @php $mp = $c['margem']['pct']; @endphp
+                    <p class="{{ $mp < 0 ? 'text-red-600' : ($mp < 15 ? 'text-amber-600' : 'text-green-600') }}" style="font-size:21px;font-weight:500;line-height:1.25;margin-top:2px">{{ $fmt($mp, 1) }}%</p>
+                    <p class="text-text-secondary truncate" style="font-size:11px">R$ {{ $fmt($c['margem']['valor']) }} · {{ $c['margem']['qtd'] }} {{ $c['margem']['qtd'] === 1 ? 'viagem' : 'viagens' }}</p>
+                @endif
+                @if (Route::has('viagens.index'))
+                    <a href="{{ route('viagens.index') }}" class="text-primary hover:underline" style="font-size:10px;font-weight:700">Viagens →</a>
+                @endif
+            </div>
+
+            {{-- Custo por km --}}
+            <div class="bg-surface border border-border rounded-xl" style="padding:12px 14px">
+                <p class="text-text-muted uppercase tracking-wide" style="font-size:10px;font-weight:600">Custo por km</p>
+                @if ($c['custo_km']['valor'] === null)
+                    <p class="text-text-muted" style="font-size:21px;font-weight:500;line-height:1.25;margin-top:2px">—</p>
+                    <p class="text-text-muted truncate" style="font-size:11px">Sem km rodado no período</p>
+                @else
+                    <p class="text-text" style="font-size:21px;font-weight:500;line-height:1.25;margin-top:2px">R$ {{ $fmt($c['custo_km']['valor']) }}</p>
+                    <p class="text-text-secondary truncate" style="font-size:11px">{{ $c['custo_km']['partes'] ?: '—' }}</p>
+                @endif
+                @if (Route::has('despesas.index'))
+                    <a href="{{ route('despesas.index') }}" class="text-primary hover:underline" style="font-size:10px;font-weight:700">Despesas de viagem →</a>
+                @endif
+            </div>
+
+            {{-- Frota em uso — valor em AZUL, como o "Disponível hoje" do ERP --}}
+            <div class="bg-surface border border-border rounded-xl" style="padding:12px 14px" title="Cavalos em viagem (carregando ou em trânsito) sobre os cavalos ativos">
+                <p class="text-text-muted uppercase tracking-wide" style="font-size:10px;font-weight:600">Frota em uso</p>
+                <p style="font-size:21px;font-weight:500;line-height:1.25;margin-top:2px;color:#2a78d6">{{ $c['frota']['em_uso'] }} de {{ $c['frota']['total'] }}</p>
+                <p class="text-text-secondary truncate" style="font-size:11px">
+                    {{ max($c['frota']['total'] - $c['frota']['em_uso'], 0) }} parados @if ($c['frota']['manutencao'] > 0) · {{ $c['frota']['manutencao'] }} em manutenção @endif
+                </p>
+                @if (Route::has('veiculos.index'))
+                    <a href="{{ route('veiculos.index') }}" class="text-primary hover:underline" style="font-size:10px;font-weight:700">Veículos →</a>
+                @endif
+            </div>
+
+            {{-- Entregas --}}
+            <div class="bg-surface border border-border rounded-xl" style="padding:12px 14px">
+                <p class="text-text-muted uppercase tracking-wide" style="font-size:10px;font-weight:600">Entregas</p>
+                <p class="text-text" style="font-size:21px;font-weight:500;line-height:1.25;margin-top:2px">{{ $c['entregas']['ok'] }} de {{ $c['entregas']['total'] }}</p>
+                @php $semComp = $c['entregas']['total'] - $c['entregas']['ok']; @endphp
+                <p class="text-text-secondary truncate" style="font-size:11px">
+                    @if ($c['entregas']['total'] === 0)
+                        Nenhuma entrega no período
+                    @elseif ($semComp > 0)
+                        <span class="text-amber-700 dark:text-amber-400" style="font-weight:600">{{ $semComp }} sem comprovante</span>
+                    @else
+                        Todas com comprovante
+                    @endif
+                </p>
+                @if ($c['entregas']['total'] > 0)
+                    @php $pe = round($c['entregas']['ok'] / $c['entregas']['total'] * 100); @endphp
+                    <div class="flex items-center gap-1.5" style="margin-top:5px" title="{{ $pe }}% com comprovante">
+                        <div class="h-1 bg-border rounded-full overflow-hidden flex-1">
+                            <div class="h-full {{ $pe >= 100 ? 'bg-green-500' : ($pe >= 70 ? 'bg-primary' : 'bg-amber-500') }}" style="width: {{ $pe }}%"></div>
                         </div>
-                        <x-badge :variant="config('manutencao.status_cores.' . $os->status, 'gray')" class="text-[10px]">{{ config('manutencao.status.' . $os->status, $os->status) }}</x-badge>
+                        <span class="text-text-muted" style="font-size:9px;font-weight:700">{{ $pe }}%</span>
                     </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    {{-- ═══════════ ANDAR 2 — Viagens em andamento ═══════════ --}}
+    <x-card padding="md">
+        <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
+            <h2 class="text-base font-semibold text-text">Viagens em andamento</h2>
+            <span class="text-xs text-text-muted">
+                {{ $this->totalAndamento }} {{ $this->totalAndamento === 1 ? 'viagem' : 'viagens' }} · progresso pela previsão de chegada
+                @if (Route::has('viagens.index')) · <a href="{{ route('viagens.index') }}" class="text-primary font-medium hover:underline">Ver todas →</a>@endif
+            </span>
+        </div>
+
+        @if ($andamento->isEmpty())
+            <p class="text-sm text-text-muted">Nenhuma viagem carregando ou em trânsito agora.</p>
+        @else
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2" style="font-variant-numeric:tabular-nums">
+                @foreach ($andamento as $v)
+                    <a href="{{ $v['url'] }}" class="block rounded-[10px] border border-border bg-surface-elevated p-2.5 min-w-0 hover:border-border-strong">
+                        <div class="flex items-center justify-between gap-1.5">
+                            <span class="font-mono text-[11px] font-semibold border border-border-strong rounded px-1.5 bg-surface">{{ $v['placa'] }}</span>
+                            <span class="inline-flex items-center gap-1 text-[10px] font-semibold {{ $corSit[$v['cor']] }}"><i class="w-1.5 h-1.5 rounded-full bg-current"></i>{{ $v['situacao'] }}</span>
+                        </div>
+                        <p class="text-xs font-semibold text-text mt-2 truncate">{{ $v['motorista'] }}</p>
+                        <p class="text-[11px] text-text-secondary truncate" title="{{ $v['rota'] }}">{{ $v['rota'] }}</p>
+                        <div class="relative h-1.5 rounded-full bg-border mt-3 mb-1.5">
+                            <span class="absolute inset-y-0 left-0 rounded-full" style="width: {{ $v['pct'] }}%; background: {{ $barraSit[$v['cor']] }}"></span>
+                            @if ($v['pct'] > 0)
+                                <span class="absolute top-1/2 w-3 h-3 -mt-1.5 -ml-1.5 rounded-full bg-surface" style="left: {{ $v['pct'] }}%; border: 2.5px solid {{ $barraSit[$v['cor']] }}"></span>
+                            @endif
+                        </div>
+                        <div class="flex justify-between gap-1.5 text-[10.5px] text-text-muted whitespace-nowrap">
+                            <span>{{ $v['pct'] > 0 ? $v['pct'] . '% · ' : '' }}{{ $v['numero'] }}</span>
+                            <span>@if ($v['chegada'])Chega <b class="{{ $v['cor'] === 'dn' ? $vermelho : 'text-text' }} font-semibold">{{ $v['chegada'] }}</b>@else Sem previsão @endif</span>
+                        </div>
+                    </a>
                 @endforeach
             </div>
-        </x-card>
-    @endif
+        @endif
+    </x-card>
 
-    {{-- ── Atalhos por módulo ── --}}
-    @php $modulos = collect(config('navegacao'))->reject(fn (array $g): bool => $g['solo'] ?? false); @endphp
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        @foreach ($modulos as $grupo)
-            <x-card padding="none" class="overflow-hidden">
-                <div class="border-b border-border px-5 py-3.5"><h2 class="text-sm font-semibold text-text">{{ $grupo['label'] }}</h2></div>
-                <div class="px-2 py-2">
-                    @foreach ($grupo['items'] as $item)
-                        @continue(isset($item['can']) && ! auth()->user()?->can($item['can']))
-                        @php $existe = \Illuminate\Support\Facades\Route::has($item['route']); @endphp
-                        <a href="{{ $existe ? route($item['route']) : '#' }}" @if($existe) wire:navigate @endif
-                           class="flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors {{ $existe ? 'text-text hover:bg-surface-elevated' : 'cursor-not-allowed text-text-muted opacity-50' }}"
-                           @unless($existe) title="Ainda não implementado" @endunless>
-                            <x-icon name="{{ $item['icon'] }}" class="h-4 w-4 flex-shrink-0" />
-                            <span class="flex-1">{{ $item['label'] }}</span>
-                            <span class="font-mono text-[10px] tabular-nums text-text-muted">{{ $item['codigo'] }}</span>
-                        </a>
-                    @endforeach
-                </div>
+    {{-- ═══════════ ANDAR 3 — Análises + atenção ═══════════ --}}
+    <div>
+        <h2 class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-2">Análises</h2>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {{-- Custo por componente --}}
+            <x-card padding="md" class="h-full">
+                <h3 class="text-sm font-semibold text-text mb-0.5">Custo por componente</h3>
+                <p class="text-xs text-text-secondary mb-4">Mês · viagens que saíram no mês</p>
+                @php $cc = $this->custoComponentes; $totCc = array_sum($cc); $maxCc = $cc ? max($cc) : 0; @endphp
+                @if ($totCc <= 0)
+                    <p class="text-sm text-text-muted">Sem custos lançados no mês.</p>
+                @else
+                    <div class="space-y-2">
+                        @foreach ($cc as $nome => $valor)
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="w-[5.5rem] flex-shrink-0 text-text-secondary truncate">{{ $nome }}</span>
+                                <span class="h-3 flex-1 min-w-0"><span class="block h-full rounded-r" style="width: {{ max(1.5, $valor / $maxCc * 100) }}%; background: #2a78d6;"></span></span>
+                                <span class="font-mono text-text font-medium flex-shrink-0 tabular-nums">R$ {{ $fmt($valor, 0) }}</span>
+                                <span class="font-mono text-text-muted flex-shrink-0 w-11 text-right tabular-nums">{{ $fmt($valor / $totCc * 100, 1) }}%</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </x-card>
-        @endforeach
+
+            {{-- Receita por cliente --}}
+            <x-card padding="md" class="h-full">
+                <h3 class="text-sm font-semibold text-text mb-0.5">Receita por cliente</h3>
+                <p class="text-xs text-text-secondary mb-4">{{ $j['rotulo'] }} · CT-e autorizados</p>
+                @php $rc = $this->receitaPorCliente; $maxRc = $rc ? max(array_column($rc, 'valor')) : 0; @endphp
+                @if ($maxRc <= 0)
+                    <p class="text-sm text-text-muted">Nenhum CT-e autorizado no período.</p>
+                @else
+                    <div class="space-y-2">
+                        @foreach ($rc as $l)
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="w-28 flex-shrink-0 text-text-secondary truncate" title="{{ $l['nome'] }}">{{ $l['nome'] }}</span>
+                                <span class="h-3 flex-1 min-w-0"><span class="block h-full rounded-r" style="width: {{ max(1.5, $l['valor'] / $maxRc * 100) }}%; background: #1baf7a;"></span></span>
+                                <span class="font-mono text-text font-medium flex-shrink-0 tabular-nums">R$ {{ $fmt($l['valor'], 0) }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </x-card>
+
+            {{-- Precisam de atenção — as mesmas pendências do sino e das bolinhas do menu --}}
+            <div class="bg-surface border border-border rounded-xl h-full">
+                <div class="flex items-center justify-between px-4 pt-4 pb-2">
+                    <h3 class="text-sm font-semibold text-text">Precisam de atenção</h3>
+                    @if (count($alertas) > 0)
+                        <span class="text-[11px] font-bold text-white bg-red-600 rounded-full px-2">{{ count($alertas) }}</span>
+                    @endif
+                </div>
+                @forelse ($alertas as $a)
+                    <a href="{{ $a['url'] }}" class="flex items-start gap-2.5 px-4 py-2 text-[12.5px] hover:bg-surface-elevated">
+                        <span class="mt-0.5 w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 {{ $a['cor'] === 'urgente' ? 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300' }}">
+                            <x-icon name="alert-triangle" class="w-3.5 h-3.5" />
+                        </span>
+                        <span class="flex-1 min-w-0"><b class="block font-semibold text-text">{{ $a['titulo'] }}</b><small class="block text-[11px] text-text-secondary">{{ $a['rotina'] }}</small></span>
+                        <span class="font-mono text-[10px] font-semibold rounded px-1.5 flex-shrink-0" style="color: var(--h6-cod-tx); background: var(--h6-cod-bg); border: 1px solid var(--h6-cod-borda)">{{ $a['codigo'] }}</span>
+                    </a>
+                @empty
+                    <p class="px-4 pb-4 text-sm text-text-muted">Nada urgente agora. ✓</p>
+                @endforelse
+            </div>
+        </div>
+
+        {{-- Segunda linha: top motoristas e vencimentos --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+            <x-card padding="md">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-text">Top motoristas no mês</h3>
+                    <span class="text-[11px] text-text-muted">Top 3 · por receita</span>
+                </div>
+                @php $tm = $this->topMotoristas; $maxTm = $tm ? max(array_column($tm, 'receita')) : 0; @endphp
+                @forelse ($tm as $i => $m)
+                    <div class="flex items-center gap-3 py-2 border-b border-border last:border-b-0">
+                        <span class="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 {{ $i === 0 ? 'bg-primary-soft text-primary' : 'bg-surface-elevated border border-border text-text-secondary' }}">{{ $i + 1 }}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[13px] font-semibold text-text truncate">{{ $m['nome'] }}</p>
+                            <p class="text-[11px] text-text-secondary">{{ $m['viagens'] }} {{ $m['viagens'] === 1 ? 'viagem' : 'viagens' }} · {{ $fmt($m['km'], 0) }} km</p>
+                            <div class="h-1 bg-border rounded-full overflow-hidden mt-1"><div class="h-full bg-primary" style="width: {{ $maxTm > 0 ? $m['receita'] / $maxTm * 100 : 0 }}%"></div></div>
+                        </div>
+                        <span class="font-mono text-[12.5px] font-semibold text-text flex-shrink-0">R$ {{ $fmt($m['receita'], 0) }}</span>
+                    </div>
+                @empty
+                    <p class="text-sm text-text-muted">Nenhuma viagem no mês ainda.</p>
+                @endforelse
+            </x-card>
+
+            <x-card padding="md">
+                <div class="flex items-start justify-between gap-3 mb-1">
+                    <div class="min-w-0">
+                        <h3 class="text-sm font-semibold text-text">Vencimentos próximos</h3>
+                        <p class="text-[11px] text-text-muted">Próximos 30 dias · documentos de veículos e motoristas</p>
+                    </div>
+                    @if (Route::has('vencimentos.index'))
+                        <a href="{{ route('vencimentos.index') }}" class="text-[11px] font-medium text-primary hover:underline whitespace-nowrap">Ver vencimentos →</a>
+                    @endif
+                </div>
+                @forelse ($this->vencimentos as $v)
+                    @php
+                        [$cls, $txt] = match (true) {
+                            $v['dias'] < 0 => ['bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300', 'Vencido há ' . abs($v['dias']) . ' d'],
+                            $v['dias'] <= 7 => ['bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300', $v['dias'] === 0 ? 'Vence hoje' : $v['dias'] . ' dias'],
+                            $v['dias'] <= 20 => ['bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300', $v['dias'] . ' dias'],
+                            default => ['bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', $v['dias'] . ' dias'],
+                        };
+                    @endphp
+                    <div class="flex items-center gap-3 py-2 border-b border-border last:border-b-0 text-[13px]">
+                        <div class="flex-1 min-w-0"><p class="font-semibold text-text truncate">{{ $v['titulo'] }}</p><p class="text-[11px] text-text-secondary">{{ $v['sub'] }}</p></div>
+                        <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap {{ $cls }}">{{ $txt }}</span>
+                    </div>
+                @empty
+                    <p class="text-sm text-text-muted mt-2">Nada vencendo nos próximos 30 dias.</p>
+                @endforelse
+            </x-card>
+        </div>
+
+        {{-- Terceira linha: faturamento de 7 dias + atividade recente --}}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+            <x-card padding="md" class="lg:col-span-2">
+                @php $f7 = $this->faturamento7Dias; @endphp
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-text">Faturamento — últimos 7 dias</h3>
+                    @if ($f7['total'] > 0)
+                        <span class="text-xs text-text-muted font-mono">Total: R$ {{ $fmt($f7['total']) }}</span>
+                    @endif
+                </div>
+                @if ($f7['total'] <= 0)
+                    <p class="text-sm text-text-muted">Sem CT-e autorizados nos últimos 7 dias.</p>
+                @else
+                    @php
+                        // Gráfico em SVG gerado aqui (sem Chart.js de CDN): linha âmbar com área, como no ERP.
+                        $W = 700; $H = 180; $x0 = 64; $x1 = 688; $y0 = 16; $y1 = 150;
+                        $mx = max($f7['valores']) ?: 1;
+                        $escala = $mx >= 1000 ? 1000 : 1;
+                        $n = count($f7['valores']) - 1;
+                        $pts = [];
+                        foreach ($f7['valores'] as $i => $val) {
+                            $pts[] = [round($x0 + $i / $n * ($x1 - $x0), 1), round($y1 - $val / $mx * ($y1 - $y0), 1)];
+                        }
+                        $linha = collect($pts)->map(fn ($p, $i) => ($i ? 'L' : 'M') . $p[0] . ' ' . $p[1])->implode(' ');
+                        $area = $linha . " L{$x1} {$y1} L{$x0} {$y1} Z";
+                        $eixo = fn ($v) => $escala === 1000 ? 'R$ ' . number_format($v / 1000, 1, ',', '.') . 'k' : 'R$ ' . number_format($v, 0, ',', '.');
+                    @endphp
+                    <svg viewBox="0 0 {{ $W }} {{ $H }}" class="w-full h-[180px]" role="img" aria-label="Faturamento dos últimos 7 dias">
+                        <defs><linearGradient id="fat7" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgb(217,119,6)" stop-opacity=".25"/><stop offset="1" stop-color="rgb(217,119,6)" stop-opacity="0"/></linearGradient></defs>
+                        @foreach ([0, .5, 1] as $fr)
+                            @php $yy = $y1 - $fr * ($y1 - $y0); @endphp
+                            <line x1="{{ $x0 }}" x2="{{ $x1 }}" y1="{{ $yy }}" y2="{{ $yy }}" style="stroke: rgb(var(--color-border))" />
+                            <text x="0" y="{{ $yy + 4 }}" style="fill: rgb(var(--color-text-secondary)); font: 11px 'JetBrains Mono', monospace">{{ $eixo($mx * $fr) }}</text>
+                        @endforeach
+                        <path d="{{ $area }}" fill="url(#fat7)" />
+                        <path d="{{ $linha }}" fill="none" stroke="rgb(217,119,6)" stroke-width="2" />
+                        @foreach ($pts as $i => $p)
+                            <circle cx="{{ $p[0] }}" cy="{{ $p[1] }}" r="3" fill="rgb(217,119,6)"><title>{{ $f7['labels'][$i] }} · R$ {{ $fmt($f7['valores'][$i]) }}</title></circle>
+                            <text x="{{ $p[0] }}" y="{{ $H - 4 }}" text-anchor="middle" style="fill: rgb(var(--color-text-secondary)); font: 11px 'JetBrains Mono', monospace">{{ $f7['labels'][$i] }}</text>
+                        @endforeach
+                    </svg>
+                @endif
+            </x-card>
+
+            <x-card padding="md" class="h-full">
+                <div class="flex items-center justify-between mb-1.5">
+                    <h3 class="text-sm font-semibold text-text">Atividade recente</h3>
+                    <span class="text-[11px] text-text-muted">Últimos lançamentos</span>
+                </div>
+                @forelse ($this->atividade as $e)
+                    <div class="flex gap-2.5 py-2 border-b border-border last:border-b-0 text-[12.5px]">
+                        <i class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style="background: {{ $e['cor'] }}"></i>
+                        <div class="flex-1 min-w-0"><p class="text-text truncate">{{ $e['titulo'] }}</p><p class="text-[11px] text-text-muted truncate">{{ $e['sub'] }}</p></div>
+                        <em class="not-italic text-[11px] text-text-muted whitespace-nowrap">{{ $e['quando']->locale('pt_BR')->shortRelativeToNowDiffForHumans() }}</em>
+                    </div>
+                @empty
+                    <p class="text-sm text-text-muted">Nenhum lançamento ainda.</p>
+                @endforelse
+            </x-card>
+        </div>
     </div>
+
+    {{-- ═══════════ Rodapé técnico ═══════════ --}}
+    @php $cont = array_filter($this->contadores); @endphp
+    @if ($cont !== [])
+        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-border opacity-80">
+            <span class="text-[10px] text-text-muted uppercase tracking-wider font-semibold mr-1">Operação:</span>
+            @foreach ($cont as $rotulo => $n)
+                <span class="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full border border-border bg-surface text-text-secondary"><b class="font-mono text-text">{{ $n }}</b> {{ $rotulo }}</span>
+            @endforeach
+        </div>
+    @endif
 </div>

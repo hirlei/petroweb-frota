@@ -71,6 +71,32 @@ no meio de frase.
 **Mockup antes de implementar.** Nenhuma tela nova é codificada sem mockup
 aprovado. Os da Fase 1 estão publicados; peça o link se não tiver.
 
+**Deploy na VPS (fluxo que funciona).** A VPS (`root@179.198.123.188`,
+`/var/www/petroweb-frota`) tem o remote do GitHub com chave **somente leitura**
+— ela puxa, mas não faz `git push`. O bundle vai do sandbox para a VPS por
+`scp` **rodado no PC** (janela sem `ssh`, com aspas no caminho):
+`scp "$HOME\Downloads\<bundle>" root@179.198.123.188:/tmp/`. Na VPS:
+`git fetch /tmp/<bundle> main` → `git merge --no-edit FETCH_HEAD` → migrate/seed/
+build. **Nunca `git reset --hard origin/main` na VPS** enquanto o GitHub estiver
+atrás — apaga o que só existe na VPS. Sincronizar o GitHub é pelo clone local do
+PC (`C:\projetos\petroweb-frota`), que tem chave de escrita. Colar base64 grande
+no terminal não funciona (trava); `scp` é o caminho.
+
+**Botão é sempre leve.** O padrão do PetroWeb Frota (como no ERP) é
+preenchimento suave + texto colorido, peso médio (`fill-100 / text-900`) —
+nunca fill sólido saturado com texto branco. É o que o `x-button` já entrega
+(`primary` = âmbar suave sobre texto âmbar escuro). Toda tela usa o `x-button`;
+`bg-primary text-white` só em elemento que NÃO é botão de ação (avatar, número
+de passo, chip de toggle).
+
+**A moldura é a do ERP.** Menu lateral H6, barra superior, fita de indicadores,
+paleta Ctrl K, cores e tela inicial são **iguais ao PetroWeb ERP** (decisão de
+02/10/2026). O CSS vem copiado do ERP em `resources/views/partials/moldura-estilos.blade.php`
+— ao mudar algo lá, traga para cá. A montagem do menu (rotina ativa, bolinhas de
+pendência, Recentes, Favoritos e o sino) é `App\Support\Navegacao`; grupo novo
+precisa de `icon` no `config/navegacao.php`. Conteúdo das telas segue os tokens
+âmbar; azul `#1A3DA3` e laranja `#FF6200` só na moldura.
+
 **Documento fiscal autorizado é imutável.** Nunca `UPDATE` em CT-e ou MDF-e
 autorizado — corrige-se por evento ou cancela-se e reemite.
 

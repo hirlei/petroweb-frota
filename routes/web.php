@@ -2,19 +2,28 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\MenuController;
+use App\Http\Controllers\RastreamentoWebhookController;
 use App\Livewire\Abastecimentos;
 use App\Livewire\Composicoes;
+use App\Livewire\Cte;
+use App\Livewire\Despesas;
+use App\Livewire\Entregas;
 use App\Livewire\Filiais;
 use App\Livewire\Inicio;
 use App\Livewire\Manutencao;
+use App\Livewire\Mdfe;
 use App\Livewire\Motoristas;
 use App\Livewire\Ocorrencias;
+use App\Livewire\OrdensColeta;
 use App\Livewire\Permissoes;
 use App\Livewire\Pessoas;
 use App\Livewire\Produtos;
 use App\Livewire\Rotas;
+use App\Livewire\Viagens;
 use App\Livewire\TabelasFrete;
 use App\Livewire\Usuarios;
+use App\Livewire\ValesPedagio;
 use App\Livewire\Veiculos;
 use App\Livewire\Vencimentos;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +42,10 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     // Dashboard operacional (componente Livewire, não Route::view). Ver Inicio.
     Route::get('/', Inicio::class)->name('inicio');
+
+    // Menu H6 (igual ao ERP): abrir rotina pelo código e fixar nos Favoritos.
+    Route::get('/ir/{codigo}', [MenuController::class, 'ir'])->where('codigo', '[0-9]{4}')->name('menu.ir');
+    Route::post('/menu/fixar/{codigo}', [MenuController::class, 'fixar'])->where('codigo', '[0-9]{4}')->name('menu.fixar');
 
     /*
      * 1010 — Pessoas. O nome da rota é o que o config/navegacao.php procura e
@@ -98,6 +111,34 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/vencimentos', Vencimentos\Index::class)->name('vencimentos.index');
 
     /*
+     * 3010 — Ordens de coleta. Documento de entrada da operação; vira CT-e.
+     */
+    Route::get('/ordens-coleta', OrdensColeta\Index::class)->name('ordens-coleta.index');
+    Route::get('/ordens-coleta/nova', OrdensColeta\Formulario::class)->name('ordens-coleta.criar');
+    Route::get('/ordens-coleta/{ordem}', OrdensColeta\Formulario::class)->name('ordens-coleta.editar');
+
+    /*
+     * 3020 — Viagens. Execução física; carrega os CT-e (N:N, RN-02).
+     */
+    Route::get('/viagens', Viagens\Index::class)->name('viagens.index');
+    Route::get('/viagens/nova', Viagens\Formulario::class)->name('viagens.criar');
+    Route::get('/viagens/{viagem}', Viagens\Formulario::class)->name('viagens.editar');
+
+    /*
+     * 3050 — Entregas (POD). Prova de entrega; base do evento 110180 do CT-e.
+     */
+    Route::get('/entregas', Entregas\Index::class)->name('entregas.index');
+    Route::get('/entregas/nova', Entregas\Formulario::class)->name('entregas.criar');
+    Route::get('/entregas/{entrega}', Entregas\Formulario::class)->name('entregas.editar');
+
+    /*
+     * 3060 — Despesas de viagem. Aprovadas, entram no custo da viagem.
+     */
+    Route::get('/despesas', Despesas\Index::class)->name('despesas.index');
+    Route::get('/despesas/nova', Despesas\Formulario::class)->name('despesas.criar');
+    Route::get('/despesas/{despesa}', Despesas\Formulario::class)->name('despesas.editar');
+
+    /*
      * 3030 — Rotas planejadas.
      */
     Route::get('/rotas', Rotas\Index::class)->name('rotas.index');
@@ -110,6 +151,27 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/ocorrencias', Ocorrencias\Index::class)->name('ocorrencias.index');
     Route::get('/ocorrencias/nova', Ocorrencias\Formulario::class)->name('ocorrencias.criar');
     Route::get('/ocorrencias/{ocorrencia}', Ocorrencias\Formulario::class)->name('ocorrencias.editar');
+
+    /*
+     * 4010 — CT-e (modelo 57). Nasce da ordem de coleta.
+     */
+    Route::get('/cte', Cte\Index::class)->name('cte.index');
+    Route::get('/cte/novo', Cte\Formulario::class)->name('cte.criar');
+    Route::get('/cte/{cte}', Cte\Formulario::class)->name('cte.editar');
+
+    /*
+     * 4020 — MDF-e (modelo 58). Nasce da viagem; RN-03.
+     */
+    Route::get('/mdfe', Mdfe\Index::class)->name('mdfe.index');
+    Route::get('/mdfe/novo', Mdfe\Formulario::class)->name('mdfe.criar');
+    Route::get('/mdfe/{mdfe}', Mdfe\Formulario::class)->name('mdfe.editar');
+
+    /*
+     * 4030 — Vale-pedágio (grupo valePed do MDF-e). Um por veículo.
+     */
+    Route::get('/vale-pedagio', ValesPedagio\Index::class)->name('vale-pedagio.index');
+    Route::get('/vale-pedagio/novo', ValesPedagio\Formulario::class)->name('vale-pedagio.criar');
+    Route::get('/vale-pedagio/{vale}', ValesPedagio\Formulario::class)->name('vale-pedagio.editar');
 
     /*
      * 9020 — Usuários. Convidados pelo gestor; papéis via spatie/permission.
@@ -129,6 +191,16 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
      * 9030 — Papéis e permissões (leitura). O que cada papel pode fazer.
      */
     Route::get('/permissoes', Permissoes\Index::class)->name('permissoes.index');
+});
+
+/*
+ * Webhook de rastreamento (máquina-a-máquina): tenancy pelo subdomínio, sem
+ * sessão nem CSRF (grupo `tenant-api`). Autenticação por token no header. É por
+ * aqui que os provedores de GPS enviam as posições ("direcionamento de sinal").
+ */
+Route::middleware('tenant-api')->group(function (): void {
+    Route::post('/webhooks/rastreamento/{provedor}', [RastreamentoWebhookController::class, 'receber'])
+        ->name('webhooks.rastreamento');
 });
 
 require __DIR__ . '/auth.php';

@@ -16,6 +16,11 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
 
     /*
+     * Versão mostrada no rodapé do menu ("PetroWeb Frota v.1.0.0"), como no ERP.
+     */
+    'versao' => env('APP_VERSAO', '1.0.0'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------

@@ -37,6 +37,8 @@ class PermissoesSeeder extends Seeder
         // Operação
         'ordem-coleta.consultar', 'ordem-coleta.gerenciar',
         'viagem.consultar', 'viagem.gerenciar',
+        'despesa-viagem.consultar', 'despesa-viagem.gerenciar',
+        'entrega.consultar', 'entrega.gerenciar',
         'rota.consultar', 'rota.gerenciar',
         'ocorrencia.consultar', 'ocorrencia.gerenciar',
         // Fiscal
@@ -61,6 +63,8 @@ class PermissoesSeeder extends Seeder
             'motorista.consultar', 'motorista.gerenciar',
             'ordem-coleta.consultar', 'ordem-coleta.gerenciar',
             'viagem.consultar', 'viagem.gerenciar',
+            'despesa-viagem.consultar', 'despesa-viagem.gerenciar',
+            'entrega.consultar', 'entrega.gerenciar',
             'rota.consultar', 'rota.gerenciar',
             'ocorrencia.consultar', 'ocorrencia.gerenciar',
             'abastecimento.consultar', 'abastecimento.gerenciar',
@@ -69,12 +73,14 @@ class PermissoesSeeder extends Seeder
         ],
         'Financeiro' => [
             'pessoa.consultar', 'tabela-frete.consultar', 'tabela-frete.gerenciar',
-            'viagem.consultar', 'cte.consultar', 'mdfe.consultar',
+            'viagem.consultar', 'despesa-viagem.consultar', 'despesa-viagem.gerenciar',
+            'cte.consultar', 'mdfe.consultar',
             'abastecimento.consultar', 'manutencao.consultar',
         ],
         'Consulta' => [
             'pessoa.consultar', 'produto.consultar', 'veiculo.consultar',
-            'motorista.consultar', 'viagem.consultar', 'cte.consultar', 'mdfe.consultar',
+            'motorista.consultar', 'viagem.consultar', 'despesa-viagem.consultar',
+            'entrega.consultar', 'cte.consultar', 'mdfe.consultar',
         ],
     ];
 

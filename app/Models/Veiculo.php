@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -90,6 +92,17 @@ class Veiculo extends Model
     public function documentos(): MorphMany
     {
         return $this->morphMany(VeiculoDocumento::class, 'documentavel');
+    }
+
+    public function posicoes(): HasMany
+    {
+        return $this->hasMany(PosicaoVeiculo::class);
+    }
+
+    /** Última posição de GPS conhecida — alimenta o caminhão no mapa. */
+    public function ultimaPosicao(): HasOne
+    {
+        return $this->hasOne(PosicaoVeiculo::class)->latestOfMany('capturado_em');
     }
 
     public function ehTracao(): bool

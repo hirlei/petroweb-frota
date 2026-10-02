@@ -14,17 +14,22 @@ declare(strict_types=1);
  *
  * `can` é a permission do spatie; `modulo` é checado contra a licença do
  * tenant. Item sem os dois aparece para todo mundo.
+ *
+ * Menu H6 (02/10/2026, igual ao ERP): cada grupo tem um `icon` (opção B do
+ * ERP — ícone no lugar da caixinha "1xxx"); as rotinas mostram o código. A
+ * montagem (ativo, badges, recentes, favoritos) fica em App\Support\Navegacao.
  */
 return [
     [
         'solo'  => true,
         'key'   => 'inicio',
-        'label' => 'Início',
+        'label' => 'Dashboard',
         'icon'  => 'layout-dashboard',
         'route' => 'inicio',
     ],
     [
         'key'   => 'cadastros',
+        'icon'  => 'users',
         'label' => 'Cadastros',
         'items' => [
             ['codigo' => '1010', 'label' => 'Pessoas',          'icon' => 'users',  'route' => 'pessoas.index',   'can' => 'pessoa.consultar'],
@@ -34,6 +39,7 @@ return [
     ],
     [
         'key'   => 'frota',
+        'icon'  => 'truck',
         'label' => 'Frota',
         'items' => [
             ['codigo' => '2010', 'label' => 'Veículos',       'icon' => 'truck',    'route' => 'veiculos.index',       'can' => 'veiculo.consultar'],
@@ -46,16 +52,20 @@ return [
     ],
     [
         'key'   => 'operacao',
+        'icon'  => 'route',
         'label' => 'Operação',
         'items' => [
             ['codigo' => '3010', 'label' => 'Ordens de coleta', 'icon' => 'file-text', 'route' => 'ordens-coleta.index', 'can' => 'ordem-coleta.consultar'],
             ['codigo' => '3020', 'label' => 'Viagens',          'icon' => 'route',     'route' => 'viagens.index',       'can' => 'viagem.consultar'],
             ['codigo' => '3030', 'label' => 'Rotas',            'icon' => 'map',       'route' => 'rotas.index',         'can' => 'rota.consultar'],
             ['codigo' => '3040', 'label' => 'Ocorrências',      'icon' => 'alert-triangle', 'route' => 'ocorrencias.index', 'can' => 'ocorrencia.consultar'],
+            ['codigo' => '3050', 'label' => 'Entregas',         'icon' => 'inbox',     'route' => 'entregas.index',      'can' => 'entrega.consultar'],
+            ['codigo' => '3060', 'label' => 'Despesas de viagem', 'icon' => 'ticket',  'route' => 'despesas.index',      'can' => 'despesa-viagem.consultar'],
         ],
     ],
     [
         'key'   => 'fiscal',
+        'icon'  => 'receipt',
         'label' => 'Fiscal',
         'items' => [
             ['codigo' => '4010', 'label' => 'CT-e',         'icon' => 'files',  'route' => 'cte.index',        'can' => 'cte.consultar'],
@@ -66,6 +76,7 @@ return [
     ],
     [
         'key'   => 'configuracoes',
+        'icon'  => 'settings',
         'label' => 'Configurações',
         'items' => [
             ['codigo' => '9010', 'label' => 'Empresa e filiais',     'icon' => 'building', 'route' => 'filiais.index',    'can' => 'filial.gerenciar'],

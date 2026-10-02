@@ -12,8 +12,14 @@ use App\Models\Empresa;
 use App\Models\Filial;
 use App\Models\Mercadoria;
 use App\Models\Motorista;
+use App\Models\Despesa;
+use App\Models\Entrega;
+use App\Models\FornecedorVpo;
 use App\Models\Municipio;
+use App\Models\OcItem;
 use App\Models\Ocorrencia;
+use App\Models\OrdemColeta;
+use App\Models\PosicaoVeiculo;
 use App\Models\OrdemServico;
 use App\Models\OrdemServicoItem;
 use App\Models\Pessoa;
@@ -24,6 +30,7 @@ use App\Models\TabelaFreteItem;
 use App\Models\User;
 use App\Models\Veiculo;
 use App\Models\VeiculoDocumento;
+use App\Models\Viagem;
 use App\Support\TenantContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -56,6 +63,7 @@ class DemonstracaoSeeder extends Seeder
             $empresa = $this->empresa();
             $filial = $this->filial($empresa);
 
+            $this->coordenadasMunicipios();
             $this->usuarios($empresa, $filial);
             $this->pessoas($empresa);
             $this->mercadorias($empresa);
@@ -68,6 +76,12 @@ class DemonstracaoSeeder extends Seeder
             $this->abastecimentos($empresa, $filial);
             $this->ocorrencias($empresa);
             $this->manutencao($empresa, $filial);
+            $this->ordensColeta($empresa, $filial);
+            $this->viagens($empresa, $filial);
+            $this->despesasViagem($empresa);
+            $this->entregas($empresa);
+            $this->rastreamentoDemo($empresa, $filial);
+            $this->fornecedoresVpo();
         });
 
         $this->command?->newLine();
@@ -575,6 +589,279 @@ class DemonstracaoSeeder extends Seeder
                     'valor_total' => 0,
                     'observacoes' => 'Vazamento no sistema de freio do 2º eixo — aguardando cuíca.',
                 ],
+            );
+        }
+    }
+
+    private function ordensColeta(Empresa $empresa, Filial $filial): void
+    {
+        $tabela = TabelaFrete::withoutGlobalScopes()->where('empresa_id', $empresa->id)->first();
+        $feira = $this->municipio('Feira de Santana', 'BA');
+        $goiania = $this->municipio('Goiânia', 'GO');
+        $salvador = $this->municipio('Salvador', 'BA');
+
+        // [numero, diasAtras, clienteDoc, remetenteDoc, destinatarioDoc, munIni, munFim, peso, valor, frete, status, itens]
+        $ordens = [
+            ['000101', 3, '11222333000181', '11222333000181', '44555666000181', $feira->id, $goiania->id, 32000, 148000, 6280.00, 'aberta', [
+                ['Milho a granel', 'SC', 640, 32000, 148000, '35240611222333000181550010000001011000001015'],
+            ]],
+            ['000100', 8, '44555666000181', '44555666000181', '10456789000143', $goiania->id, $feira->id, 30500, 132500, 5910.00, 'coletada', [
+                ['Farelo de soja', 'SC', 610, 30500, 132500, '52240644555666000181550010000000991000000998'],
+            ]],
+            ['000099', 16, '77888999000181', '77888999000181', '77888999000181', $salvador->id, $goiania->id, 28000, 96000, 5140.00, 'faturada', [
+                ['Fertilizante NPK', 'TON', 28, 28000, 96000, null],
+            ]],
+        ];
+
+        foreach ($ordens as [$numero, $diasAtras, $cliDoc, $remDoc, $destDoc, $munIni, $munFim, $peso, $valor, $frete, $status, $itens]) {
+            $cliente = $this->pessoaPorDoc($empresa, $cliDoc);
+
+            if ($cliente === null) {
+                continue;
+            }
+
+            $ordem = OrdemColeta::withoutGlobalScopes()->firstOrCreate(
+                ['empresa_id' => $empresa->id, 'numero' => $numero],
+                [
+                    'filial_id' => $filial->id,
+                    'data' => Carbon::today()->subDays($diasAtras)->toDateString(),
+                    'cliente_id' => $cliente->id,
+                    'tomador_tipo' => 'remetente',
+                    'remetente_id' => $this->pessoaPorDoc($empresa, $remDoc)?->id,
+                    'destinatario_id' => $this->pessoaPorDoc($empresa, $destDoc)?->id,
+                    'municipio_inicio_id' => $munIni,
+                    'municipio_fim_id' => $munFim,
+                    'previsao_coleta' => Carbon::today()->subDays($diasAtras)->setTime(8, 0),
+                    'previsao_entrega' => Carbon::today()->subDays($diasAtras)->addDay()->setTime(18, 0),
+                    'peso_bruto' => $peso,
+                    'volumes' => (int) $itens[0][2],
+                    'valor_mercadoria' => $valor,
+                    'tabela_frete_id' => $tabela?->id,
+                    'valor_frete_calculado' => $frete,
+                    'status' => $status,
+                ],
+            );
+
+            foreach ($itens as [$desc, $unidade, $qtd, $pesoItem, $valorItem, $chave]) {
+                OcItem::withoutGlobalScopes()->firstOrCreate(
+                    ['ordem_coleta_id' => $ordem->id, 'descricao' => $desc],
+                    [
+                        'quantidade' => $qtd,
+                        'unidade' => $unidade,
+                        'peso' => $pesoItem,
+                        'valor' => $valorItem,
+                        'nfe_chave' => $chave,
+                    ],
+                );
+            }
+        }
+    }
+
+    private function viagens(Empresa $empresa, Filial $filial): void
+    {
+        $tracao = $this->veiculoPorPlaca($empresa, 'OKZ1A34');
+        $rota = Rota::withoutGlobalScopes()->where('empresa_id', $empresa->id)->first();
+        $motorista = Motorista::withoutGlobalScopes()->where('empresa_id', $empresa->id)->first();
+        $feira = $this->municipio('Feira de Santana', 'BA');
+        $goiania = $this->municipio('Goiânia', 'GO');
+
+        if ($tracao === null || $motorista === null) {
+            return;
+        }
+
+        $snapshot = ['PXR-3C56', 'RTA-4D67'];
+
+        // [numero, diasAtras, status, kmIni, kmFin, receita, comb, ped, mot, manut, outros]
+        $lista = [
+            ['000042', 2, 'em_transito', 486000, 486000, 12190.00, 5180.00, 1240.00, 1860.00, 480.00, 200.00],
+            ['000041', 12, 'entregue', 484800, 486000, 11800.00, 5020.00, 1210.00, 1800.00, 0.00, 180.00],
+            ['000040', 25, 'encerrada', 483600, 484800, 11450.00, 4980.00, 1190.00, 1760.00, 320.00, 150.00],
+        ];
+
+        foreach ($lista as [$numero, $diasAtras, $status, $kmIni, $kmFin, $receita, $comb, $ped, $mot, $manut, $outros]) {
+            $viagem = Viagem::withoutGlobalScopes()->firstOrNew(
+                ['empresa_id' => $empresa->id, 'numero' => $numero],
+            );
+
+            if ($viagem->exists) {
+                continue;
+            }
+
+            $viagem->fill([
+                'filial_id' => $filial->id,
+                'tipo' => 'carga_lotacao',
+                'veiculo_tracao_id' => $tracao->id,
+                'composicao_snapshot' => $snapshot,
+                'motorista_id' => $motorista->id,
+                'rota_id' => $rota?->id,
+                'municipio_origem_id' => $feira->id,
+                'municipio_destino_id' => $goiania->id,
+                'saida_prevista' => Carbon::now()->subDays($diasAtras)->setTime(6, 0),
+                'saida_real' => Carbon::now()->subDays($diasAtras)->setTime(6, 30),
+                'chegada_prevista' => Carbon::now()->subDays($diasAtras)->addDay()->setTime(20, 0),
+                'chegada_real' => $status === 'em_transito' ? null : Carbon::now()->subDays($diasAtras)->addDay()->setTime(19, 20),
+                'km_inicial' => $kmIni,
+                'km_final' => $kmFin,
+                'km_percorrido' => $kmFin - $kmIni,
+                'peso_total' => 32000,
+                'valor_carga' => 148000,
+                'custo_combustivel' => $comb,
+                'custo_pedagio' => $ped,
+                'custo_motorista' => $mot,
+                'custo_manutencao' => $manut,
+                'custo_outros' => $outros,
+                'receita_total' => $receita,
+                'status' => $status,
+            ]);
+
+            $viagem->consolidarCustos();
+            $viagem->save();
+        }
+    }
+
+    private function despesasViagem(Empresa $empresa): void
+    {
+        // Viagem em trânsito com despesas pendentes de aprovação (não afetam o
+        // custo enquanto pendentes — o custo seeded da viagem fica intacto).
+        $viagem = Viagem::withoutGlobalScopes()
+            ->where('empresa_id', $empresa->id)->where('numero', '000042')->first();
+        $motorista = Motorista::withoutGlobalScopes()->where('empresa_id', $empresa->id)->first();
+
+        if ($viagem === null) {
+            return;
+        }
+
+        // [tipo, diasAtras, valor, forma, descricao]
+        $itens = [
+            ['pedagio', 2, 1240.00, 'adiantamento', 'Praças BR-242 / BR-020 — vale-pedágio da viagem.'],
+            ['alimentacao', 2, 180.00, 'adiantamento', 'Refeições do motorista em rota.'],
+            ['chapa', 1, 220.00, 'reembolso', 'Chapa na descarga em Goiânia.'],
+        ];
+
+        foreach ($itens as [$tipo, $diasAtras, $valor, $forma, $descricao]) {
+            Despesa::withoutGlobalScopes()->firstOrCreate(
+                ['empresa_id' => $empresa->id, 'viagem_id' => $viagem->id, 'tipo' => $tipo, 'descricao' => $descricao],
+                [
+                    'motorista_id' => $motorista?->id,
+                    'data' => Carbon::today()->subDays($diasAtras)->toDateString(),
+                    'valor' => $valor,
+                    'forma_pagamento' => $forma,
+                    'aprovada' => false,
+                    'origem' => 'manual',
+                ],
+            );
+        }
+    }
+
+    private function entregas(Empresa $empresa): void
+    {
+        $ocPorNumero = fn (string $n) => OrdemColeta::withoutGlobalScopes()
+            ->where('empresa_id', $empresa->id)->where('numero', $n)->first();
+
+        // [numeroOC, diasAtras, recebedor, doc, tipo, comprovada]
+        $itens = [
+            ['000099', 5, 'José R. Almeida', '52998224725', 'foto', true],
+            ['000100', 1, null, null, 'foto', false],   // a comprovar
+        ];
+
+        foreach ($itens as [$numero, $diasAtras, $recebedor, $doc, $tipo, $comprovada]) {
+            $oc = $ocPorNumero($numero);
+
+            if ($oc === null) {
+                continue;
+            }
+
+            Entrega::withoutGlobalScopes()->firstOrCreate(
+                ['empresa_id' => $empresa->id, 'ordem_coleta_id' => $oc->id],
+                [
+                    'data_hora' => Carbon::now()->subDays($diasAtras)->setTime(14, 20),
+                    'recebedor_nome' => $recebedor,
+                    'recebedor_documento' => $doc,
+                    'tipo_comprovacao' => $tipo,
+                    // Marca como comprovada anexando um caminho fictício de canhoto.
+                    'canhoto_path' => $comprovada ? 'demo/canhoto-' . $numero . '.jpg' : null,
+                    'observacoes' => $comprovada ? 'Carga conferida e recebida sem avarias.' : null,
+                ],
+            );
+        }
+    }
+
+    /**
+     * Preenche latitude/longitude (centroide aproximado) das cidades usadas na
+     * demonstração — o import do IBGE traz só nome/UF. Sem isso o mapa fica vazio.
+     */
+    private function coordenadasMunicipios(): void
+    {
+        // [nome, uf, latitude, longitude]
+        $cidades = [
+            ['Feira de Santana', 'BA', -12.2664, -38.9663],
+            ['Barreiras', 'BA', -12.1436, -44.9936],
+            ['Goiânia', 'GO', -16.6869, -49.2648],
+            ['Salvador', 'BA', -12.9777, -38.5016],
+            ['Luís Eduardo Magalhães', 'BA', -12.0956, -45.8006],
+            ['Vitória', 'ES', -20.3155, -40.3128],
+            ['São Paulo', 'SP', -23.5505, -46.6333],
+        ];
+
+        foreach ($cidades as [$nome, $uf, $lat, $lng]) {
+            Municipio::where('nome', $nome)->where('uf', $uf)
+                ->whereNull('latitude')
+                ->update(['latitude' => $lat, 'longitude' => $lng]);
+        }
+    }
+
+    private function rastreamentoDemo(Empresa $empresa, Filial $filial): void
+    {
+        // Traçado aproximado da rota (waypoints [lat,lng]) — na produção vem do
+        // OpenRouteService pelo botão "calcular traçado". Aqui é só para o mapa
+        // da demonstração não ficar em linha reta.
+        $rota = Rota::withoutGlobalScopes()->where('empresa_id', $empresa->id)->first();
+
+        if ($rota !== null && $rota->geometria === null) {
+            $pontos = [
+                [-12.2664, -38.9663], [-12.19, -40.5], [-12.31, -42.0], [-12.16, -43.6],
+                [-12.1436, -44.9936], [-13.2, -46.3], [-14.6, -47.6], [-15.9, -48.6],
+                [-16.6869, -49.2648],
+            ];
+            $rota->update(['geometria' => ['pontos' => $pontos, 'distancia_km' => 1180, 'duracao_min' => 1230]]);
+        }
+
+        // Última posição do cavalo OKZ1A34, a caminho (perto de Barreiras).
+        $veiculo = $this->veiculoPorPlaca($empresa, 'OKZ1A34');
+        $viagem = Viagem::withoutGlobalScopes()
+            ->where('empresa_id', $empresa->id)->where('numero', '000042')->first();
+
+        if ($veiculo !== null) {
+            PosicaoVeiculo::withoutGlobalScopes()->firstOrCreate(
+                ['empresa_id' => $empresa->id, 'veiculo_id' => $veiculo->id, 'provedor' => 'manual'],
+                [
+                    'viagem_id' => $viagem?->id,
+                    'latitude' => -12.5000,
+                    'longitude' => -45.5000,
+                    'velocidade_kmh' => 78,
+                    'rumo' => 250,
+                    'ignicao' => true,
+                    'capturado_em' => Carbon::now()->subMinutes(8),
+                    'recebido_em' => Carbon::now()->subMinutes(8),
+                ],
+            );
+        }
+    }
+
+    private function fornecedoresVpo(): void
+    {
+        // Catálogo GLOBAL (sem empresa_id) — na produção vem da lista do SVRS.
+        // [cnpj, razão social, ato]
+        $fornecedores = [
+            ['01234567000188', 'REPOM S.A. (demo)', 'ANTT 001'],
+            ['02345678000199', 'CONECTCAR SOLUÇÕES DE MOBILIDADE (demo)', 'ANTT 002'],
+            ['03456789000100', 'SEM PARAR / FLEET SOLUTIONS (demo)', 'ANTT 003'],
+        ];
+
+        foreach ($fornecedores as [$cnpj, $razao, $ato]) {
+            FornecedorVpo::firstOrCreate(
+                ['cnpj' => $cnpj],
+                ['razao_social' => $razao, 'ato_habilitacao' => $ato, 'ativo' => true, 'sincronizado_em' => Carbon::now()],
             );
         }
     }

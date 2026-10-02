@@ -27,6 +27,7 @@ class Rota extends Model
         'tempo_estimado_min' => 'integer',
         'valor_pedagio_estimado' => 'decimal:2',
         'restricoes' => 'array',
+        'geometria'  => 'array',
         'ativa' => 'boolean',
     ];
 

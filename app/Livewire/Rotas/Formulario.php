@@ -7,6 +7,8 @@ namespace App\Livewire\Rotas;
 use App\Models\Municipio;
 use App\Models\Rota;
 use App\Models\RotaPonto;
+use App\Services\Roteirizacao\RoteirizacaoException;
+use App\Services\Roteirizacao\Roteirizador;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
@@ -40,6 +42,9 @@ class Formulario extends Component
     public string $restr_peso_t = '';
     public string $restr_janela = '';
 
+    /** Traçado pela estrada calculado pelo motor de rotas. */
+    public ?array $geometria = null;
+
     /** @var list<array<string,mixed>> */
     public array $pontos = [];
 
@@ -70,6 +75,7 @@ class Formulario extends Component
         $this->restr_altura_m = (string) ($restricoes['altura_m'] ?? '');
         $this->restr_peso_t = (string) ($restricoes['peso_t'] ?? '');
         $this->restr_janela = (string) ($restricoes['janela'] ?? '');
+        $this->geometria = $rota->geometria;
 
         $this->pontos = $rota->pontos->map(fn (RotaPonto $p): array => [
             'id' => $p->id,
@@ -78,19 +84,61 @@ class Formulario extends Component
             'descricao' => (string) $p->descricao,
             'distancia_acumulada_km' => $p->distancia_acumulada_km === null ? '' : (string) $p->distancia_acumulada_km,
             'valor_pedagio' => $p->valor_pedagio === null ? '' : (string) $p->valor_pedagio,
+            'latitude' => $p->latitude === null ? '' : (string) $p->latitude,
+            'longitude' => $p->longitude === null ? '' : (string) $p->longitude,
         ])->all();
     }
 
     public function adicionarPonto(): void
     {
         $this->pontos[] = ['id' => null, 'tipo' => 'passagem', 'municipio_id' => null,
-            'descricao' => '', 'distancia_acumulada_km' => '', 'valor_pedagio' => ''];
+            'descricao' => '', 'distancia_acumulada_km' => '', 'valor_pedagio' => '',
+            'latitude' => '', 'longitude' => ''];
     }
 
     public function removerPonto(int $i): void
     {
         unset($this->pontos[$i]);
         $this->pontos = array_values($this->pontos);
+    }
+
+    /**
+     * Calcula o traçado pela estrada a partir dos pontos com coordenada, via
+     * motor de rotas. Guarda em memória; persiste no salvar.
+     */
+    public function calcularTracado(Roteirizador $roteirizador): void
+    {
+        $coords = array_map(fn (array $p): array => [$p['lat'], $p['lng']], $this->pontosMapa);
+
+        if (count($coords) < 2) {
+            session()->flash('erro_tracado', 'Informe coordenadas em pelo menos dois pontos para traçar a rota.');
+
+            return;
+        }
+
+        try {
+            $resultado = $roteirizador->rotear($coords);
+        } catch (RoteirizacaoException $e) {
+            session()->flash('erro_tracado', $e->getMessage());
+
+            return;
+        }
+
+        $this->geometria = [
+            'pontos' => $resultado['pontos'],
+            'distancia_km' => $resultado['distancia_km'],
+            'duracao_min' => $resultado['duracao_min'],
+        ];
+
+        // Preenche distância/tempo do cabeçalho quando ainda vazios.
+        if ($this->distancia_km === '') {
+            $this->distancia_km = (string) $resultado['distancia_km'];
+        }
+        if ($this->tempo_estimado_min === '') {
+            $this->tempo_estimado_min = (string) $resultado['duracao_min'];
+        }
+
+        session()->flash('sucesso_tracado', "Traçado calculado: {$resultado['distancia_km']} km · {$resultado['duracao_min']} min. Salve a rota para guardar.");
     }
 
     #[Computed]
@@ -107,6 +155,46 @@ class Formulario extends Component
         }, 0.0);
     }
 
+    /**
+     * Pontos prontos para o mapa: coordenada do próprio ponto ou, na falta, a do
+     * município. Só entram os que têm coordenada.
+     *
+     * @return list<array<string,mixed>>
+     */
+    #[Computed]
+    public function pontosMapa(): array
+    {
+        $ids = collect($this->pontos)->pluck('municipio_id')->filter()->unique()->all();
+        $coordsMunicipio = $ids === []
+            ? collect()
+            : Municipio::whereIn('id', $ids)->get(['id', 'nome', 'uf', 'latitude', 'longitude'])->keyBy('id');
+
+        $mapa = [];
+
+        foreach ($this->pontos as $p) {
+            $lat = ($p['latitude'] ?? '') !== '' ? (float) $p['latitude'] : null;
+            $lng = ($p['longitude'] ?? '') !== '' ? (float) $p['longitude'] : null;
+            $municipio = $p['municipio_id'] ? $coordsMunicipio->get($p['municipio_id']) : null;
+
+            if ($lat === null && $municipio?->latitude !== null) {
+                $lat = (float) $municipio->latitude;
+                $lng = (float) $municipio->longitude;
+            }
+
+            if ($lat === null || $lng === null) {
+                continue;
+            }
+
+            $rotulo = trim((string) ($p['descricao'] ?? '')) !== ''
+                ? $p['descricao']
+                : ($municipio ? $municipio->nome . '/' . $municipio->uf : ucfirst((string) $p['tipo']));
+
+            $mapa[] = ['lat' => $lat, 'lng' => $lng, 'label' => $rotulo, 'tipo' => $p['tipo']];
+        }
+
+        return $mapa;
+    }
+
     protected function rules(): array
     {
         return [
@@ -118,6 +206,8 @@ class Formulario extends Component
             'valor_pedagio_estimado' => ['nullable', 'numeric', 'min:0'],
             'pontos.*.tipo' => ['required', Rule::in(Rota::TIPOS_PONTO)],
             'pontos.*.municipio_id' => ['nullable', 'integer', 'exists:municipios,id'],
+            'pontos.*.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'pontos.*.longitude' => ['nullable', 'numeric', 'between:-180,180'],
         ];
     }
 
@@ -147,6 +237,7 @@ class Formulario extends Component
             'tempo_estimado_min' => $this->tempo_estimado_min === '' ? null : (int) $this->tempo_estimado_min,
             'valor_pedagio_estimado' => $this->nuloNum($this->valor_pedagio_estimado),
             'restricoes' => $restricoes === [] ? null : $restricoes,
+            'geometria' => $this->geometria,
             'ativa' => $this->ativa,
         ];
 
@@ -166,6 +257,8 @@ class Formulario extends Component
                     'descricao' => $this->nulo((string) ($ponto['descricao'] ?? '')),
                     'distancia_acumulada_km' => $this->nuloNum((string) ($ponto['distancia_acumulada_km'] ?? '')),
                     'valor_pedagio' => $this->nuloNum((string) ($ponto['valor_pedagio'] ?? '')),
+                    'latitude' => $this->nuloNum((string) ($ponto['latitude'] ?? '')),
+                    'longitude' => $this->nuloNum((string) ($ponto['longitude'] ?? '')),
                 ];
 
                 $modelo = ($ponto['id'] ?? null) !== null
