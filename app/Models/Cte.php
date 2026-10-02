@@ -112,6 +112,30 @@ class Cte extends Model
             ->withTimestamps();
     }
 
+    /** Linhas de fatura deste CT-e (rotina 5010). */
+    public function faturaItens(): HasMany
+    {
+        return $this->hasMany(FaturaCte::class);
+    }
+
+    /** A fatura ativa em que o CT-e está, se houver. */
+    public function faturaAtiva(): ?Fatura
+    {
+        return $this->faturaItens()->where('ativo', true)->with('fatura')->first()?->fatura;
+    }
+
+    /**
+     * CT-e que podem entrar numa fatura: autorizados, que cobram frete (normal,
+     * complementar ou substituto — anulação não) e que não estão em fatura ativa.
+     */
+    public function scopeFaturaveis(Builder $q): Builder
+    {
+        return $q->where('status', 'autorizado')
+            ->whereIn('tipo_cte', [0, 1, 3])
+            ->where('valor_total_servico', '>', 0)
+            ->whereDoesntHave('faturaItens', fn (Builder $f) => $f->where('ativo', true));
+    }
+
     public function autorizado(): bool
     {
         return $this->status === 'autorizado';

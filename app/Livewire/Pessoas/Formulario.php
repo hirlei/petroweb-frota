@@ -52,6 +52,11 @@ class Formulario extends Component
     public string $observacoes = '';
     public bool $ativo = true;
 
+    // Faturamento (rotinas 5010/5020): prazo e encargos do cliente.
+    public string $prazo_faturamento = '';
+    public string $multa_percentual = '';
+    public string $juros_mes_percentual = '';
+
     // Transportador
     public string $rntrc = '';
     public string $rntrc_validade = '';
@@ -89,9 +94,12 @@ class Formulario extends Component
         $this->documento = Documento::formatar((string) $pessoa->documento);
 
         foreach (['documento_estrangeiro', 'nome_fantasia', 'ie', 'im', 'suframa',
-            'cnae', 'email', 'telefone', 'observacoes', 'rntrc', 'tp_transp'] as $campo) {
+            'cnae', 'email', 'telefone', 'observacoes', 'rntrc', 'tp_transp', 'prazo_faturamento'] as $campo) {
             $this->{$campo} = (string) ($pessoa->{$campo} ?? '');
         }
+
+        $this->multa_percentual = $pessoa->multa_percentual !== null ? (string) (float) $pessoa->multa_percentual : '';
+        $this->juros_mes_percentual = $pessoa->juros_mes_percentual !== null ? (string) (float) $pessoa->juros_mes_percentual : '';
 
         $this->rntrc_validade = $pessoa->rntrc_validade?->format('Y-m-d') ?? '';
         $this->ativo = (bool) $pessoa->ativo;
@@ -266,6 +274,18 @@ class Formulario extends Component
             'rntrc' => [Rule::requiredIf(fn (): bool => $this->exigeRntrc), 'nullable', 'string', 'max:10'],
             'rntrc_validade' => ['nullable', 'date'],
             'tp_transp' => ['nullable', Rule::in(['1', '2', '3'])],
+            'prazo_faturamento' => ['nullable', 'string', 'max:40', function (string $atributo, mixed $valor, callable $falhar): void {
+                if (trim((string) $valor) === '') {
+                    return;
+                }
+                try {
+                    \App\Domain\Financeiro\Parcelamento::prazos((string) $valor);
+                } catch (\InvalidArgumentException $e) {
+                    $falhar($e->getMessage());
+                }
+            }],
+            'multa_percentual' => ['nullable', 'numeric', 'min:0', 'max:20'],
+            'juros_mes_percentual' => ['nullable', 'numeric', 'min:0', 'max:20'],
             'papeis' => ['array'],
             'papeis.*' => [Rule::in(RegrasPessoa::PAPEIS)],
             'enderecos' => ['array'],
@@ -309,6 +329,11 @@ class Formulario extends Component
             'email' => $this->vazioParaNulo($this->email),
             'telefone' => $this->vazioParaNulo($this->telefone),
             'observacoes' => $this->vazioParaNulo($this->observacoes),
+            'prazo_faturamento' => trim($this->prazo_faturamento) !== ''
+                ? \App\Domain\Financeiro\Parcelamento::condicao(\App\Domain\Financeiro\Parcelamento::prazos($this->prazo_faturamento))
+                : null,
+            'multa_percentual' => $this->multa_percentual !== '' ? (float) $this->multa_percentual : null,
+            'juros_mes_percentual' => $this->juros_mes_percentual !== '' ? (float) $this->juros_mes_percentual : null,
             'ativo' => $this->ativo,
         ];
 

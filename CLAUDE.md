@@ -100,6 +100,16 @@ precisa de `icon` no `config/navegacao.php`. Conteúdo das telas segue os tokens
 **Documento fiscal autorizado é imutável.** Nunca `UPDATE` em CT-e ou MDF-e
 autorizado — corrige-se por evento ou cancela-se e reemite.
 
+**Faturamento (5010) e contas a receber (5020).** A fatura é documento
+comercial, não fiscal: agrupa CT-e **autorizados** de **um** tomador. Um CT-e só
+pode estar em uma fatura ativa — índice parcial `fatura_ctes(cte_id) WHERE ativo`.
+Cada parcela é um título; juros e multa entram no caixa mas não abatem saldo;
+cancelar fatura só sem recebimento válido (estorne antes); estorno marca, não
+apaga. Toda mudança de valor/status passa por `App\Services\Financeiro\Faturamento`
+— tela nenhuma faz `update` direto em fatura, título ou recebimento. Parcelas e
+encargos são lógica pura em `App\Domain\Financeiro` (centavos inteiros: a soma
+das parcelas é sempre o total).
+
 **Nenhuma chamada à SEFAZ dentro do request.** Tudo é job com retentativa,
 backoff e status persistido, atrás da `SefazGatewayInterface`.
 

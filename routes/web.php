@@ -2,13 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\FaturaImpressaoController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\RastreamentoWebhookController;
 use App\Livewire\Abastecimentos;
 use App\Livewire\Composicoes;
+use App\Livewire\ContasReceber;
 use App\Livewire\Cte;
 use App\Livewire\Despesas;
 use App\Livewire\Entregas;
+use App\Livewire\Faturas;
 use App\Livewire\Filiais;
 use App\Livewire\Inicio;
 use App\Livewire\Manutencao;
@@ -172,6 +175,20 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/vale-pedagio', ValesPedagio\Index::class)->name('vale-pedagio.index');
     Route::get('/vale-pedagio/novo', ValesPedagio\Formulario::class)->name('vale-pedagio.criar');
     Route::get('/vale-pedagio/{vale}', ValesPedagio\Formulario::class)->name('vale-pedagio.editar');
+
+    /*
+     * 5010 — Faturas. Agrupa CT-e autorizados de um tomador; cada parcela vira
+     * um título em Contas a receber (5020). Regras em Services\Financeiro\Faturamento.
+     */
+    Route::get('/faturas', Faturas\Index::class)->name('faturas.index');
+    Route::get('/faturas/nova', Faturas\Formulario::class)->name('faturas.criar');
+    Route::get('/faturas/{fatura}', Faturas\Detalhe::class)->name('faturas.ver');
+    Route::get('/faturas/{fatura}/imprimir', FaturaImpressaoController::class)->name('faturas.imprimir');
+
+    /*
+     * 5020 — Contas a receber. Parcelas das faturas, recebimento e estorno.
+     */
+    Route::get('/contas-receber', ContasReceber\Index::class)->name('contas-receber.index');
 
     /*
      * 9020 — Usuários. Convidados pelo gestor; papéis via spatie/permission.

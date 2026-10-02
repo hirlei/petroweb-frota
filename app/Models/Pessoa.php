@@ -32,6 +32,8 @@ class Pessoa extends Model
     protected $casts = [
         'rntrc_validade' => 'date',
         'ativo'          => 'boolean',
+        'multa_percentual'     => 'decimal:2',
+        'juros_mes_percentual' => 'decimal:2',
     ];
 
     public const TIPO_FISICA = 'F';
@@ -100,6 +102,20 @@ class Pessoa extends Model
     public function ehTac(): bool
     {
         return $this->tp_transp === '2';
+    }
+
+    /** "28/56 dias", "À vista" — ou null sem prazo (ou com prazo inválido) no cadastro. */
+    public function prazoFaturamentoRotulo(): ?string
+    {
+        if ($this->prazo_faturamento === null || trim((string) $this->prazo_faturamento) === '') {
+            return null;
+        }
+
+        try {
+            return \App\Domain\Financeiro\Parcelamento::rotulo(\App\Domain\Financeiro\Parcelamento::prazos((string) $this->prazo_faturamento));
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
     }
 
     public function documentoFormatado(): string

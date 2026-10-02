@@ -137,6 +137,22 @@
                         </div>
                     @endif
 
+                    @if (in_array('cliente', $papeis, true))
+                        <div class="my-5 h-px bg-border"></div>
+                        <div class="mb-3 flex items-center gap-2">
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Faturamento</p>
+                            <x-badge variant="info" class="text-[10px]">Usado na Fatura (5010) e no recebimento (5020)</x-badge>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <x-input label="Prazo de faturamento (dias)" wire:model="prazo_faturamento" placeholder="Ex.: 28 ou 28/56" mono
+                                     :error="$errors->first('prazo_faturamento')" help="0 é à vista. Separe as parcelas com barra." />
+                            <x-input label="Multa por atraso (%)" type="number" step="0.01" min="0" wire:model="multa_percentual"
+                                     :error="$errors->first('multa_percentual')" help="Uma vez, sobre o valor em aberto." />
+                            <x-input label="Juros ao mês (%)" type="number" step="0.01" min="0" wire:model="juros_mes_percentual"
+                                     :error="$errors->first('juros_mes_percentual')" help="Simples, proporcional aos dias." />
+                        </div>
+                    @endif
+
                     <div class="my-5 h-px bg-border"></div>
                     <x-input label="Observações" wire:model="observacoes" />
 
