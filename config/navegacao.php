@@ -72,6 +72,7 @@ return [
             ['codigo' => '4020', 'label' => 'MDF-e',        'icon' => 'files',  'route' => 'mdfe.index',       'can' => 'mdfe.consultar'],
             ['codigo' => '4030', 'label' => 'Vale-pedágio', 'icon' => 'ticket', 'route' => 'vale-pedagio.index', 'can' => 'mdfe.consultar'],
             ['codigo' => '4040', 'label' => 'Certificados', 'icon' => 'shield-check', 'route' => 'certificados.index', 'can' => 'certificado.gerenciar'],
+            ['codigo' => '4050', 'label' => 'CIOT',         'icon' => 'key',    'route' => 'ciot.index',       'can' => 'ciot.consultar'],
         ],
     ],
     [

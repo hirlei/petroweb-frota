@@ -36,6 +36,19 @@ class AppServiceProvider extends ServiceProvider
                 default => new FakeSefazGateway(),
             };
         });
+
+        // CIOT e vale-pedágio. Emissor de teste até haver instituição de
+        // pagamento e fornecedora contratadas (config/ciot.php).
+        $this->app->bind(\App\Services\Fiscal\Ciot\CiotGateway::class, function () {
+            return match (config('ciot.driver', 'fake')) {
+                default => new \App\Services\Fiscal\Ciot\FakeCiotGateway(),
+            };
+        });
+        $this->app->bind(\App\Services\Fiscal\ValePedagio\ValePedagioGateway::class, function () {
+            return match (config('ciot.vale_pedagio.driver', 'fake')) {
+                default => new \App\Services\Fiscal\ValePedagio\FakeValePedagioGateway(),
+            };
+        });
     }
 
     public function boot(): void

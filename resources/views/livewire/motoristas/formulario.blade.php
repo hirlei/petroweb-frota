@@ -85,7 +85,7 @@
                 {{-- Vínculo --}}
                 <div class="px-5 py-5" @class(['hidden' => $aba !== 'vinculo'])>
                     <x-select label="Vínculo" required wire:model.live="vinculo" :error="$errors->first('vinculo')"
-                              help="Decide se há jornada (só CLT) e se gera CIOT (TAC).">
+                              help="Decide se há jornada (só CLT) e como sai o CIOT (TAC: pela instituição de pagamento).">
                         @foreach (config('motoristas.vinculos') as $codigo => $rotulo)
                             <option value="{{ $codigo }}">{{ $rotulo }}</option>
                         @endforeach
@@ -164,7 +164,7 @@
                         <div class="flex items-start gap-2.5 rounded-md bg-blue-50 px-3 py-3 dark:bg-blue-950/40">
                             <x-icon name="check" class="mt-px h-4 w-4 flex-shrink-0 text-info" />
                             <div class="text-xs leading-relaxed text-blue-800 dark:text-blue-300">
-                                <b>CLT.</b> Jornada, escala e ponto se aplicam. Opera sob o RNTRC da empresa; não gera CIOT.
+                                <b>CLT.</b> Jornada, escala e ponto se aplicam. Opera sob o RNTRC da empresa; o CIOT da viagem é registrado direto na ANTT.
                             </div>
                         </div>
                     @else
@@ -172,7 +172,7 @@
                             <x-icon name="alert-triangle" class="mt-px h-4 w-4 flex-shrink-0 text-amber-700" />
                             <div class="text-xs leading-relaxed text-amber-900 dark:text-amber-300">
                                 <b>{{ config('motoristas.vinculos.' . $vinculo) }}.</b> Sem jornada — registrar ponto de TAC
-                                fabrica prova de vínculo empregatício (RN-12). @if ($this->ehTac) RNTRC próprio e CIOT obrigatório. @endif
+                                fabrica prova de vínculo empregatício (RN-12). @if ($this->ehTac) RNTRC próprio e CIOT pela instituição de pagamento. @endif
                             </div>
                         </div>
                     @endif

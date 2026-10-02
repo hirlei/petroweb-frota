@@ -25,7 +25,7 @@
                 {{ config('motoristas.vinculos.' . $motorista->vinculo) }}
             </x-badge>
             @if ($motorista->ehTac())
-                <x-badge variant="warning" class="px-2.5 py-1">TAC · CIOT obrigatório</x-badge>
+                <x-badge variant="warning" class="px-2.5 py-1">TAC · CIOT pela instituição</x-badge>
             @endif
         </div>
 

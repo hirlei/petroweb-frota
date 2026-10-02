@@ -6,6 +6,7 @@ use App\Http\Controllers\FaturaImpressaoController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\RastreamentoWebhookController;
 use App\Livewire\Abastecimentos;
+use App\Livewire\Ciots;
 use App\Livewire\Composicoes;
 use App\Livewire\ContasReceber;
 use App\Livewire\Cte;
@@ -175,6 +176,13 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/vale-pedagio', ValesPedagio\Index::class)->name('vale-pedagio.index');
     Route::get('/vale-pedagio/novo', ValesPedagio\Formulario::class)->name('vale-pedagio.criar');
     Route::get('/vale-pedagio/{vale}', ValesPedagio\Formulario::class)->name('vale-pedagio.editar');
+
+    /*
+     * 4050 — CIOT. Registrado na emissão do MDF-e (4020); aqui é consulta,
+     * pagamento do saldo ao TAC, cancelamento e reenvio.
+     */
+    Route::get('/ciot', Ciots\Index::class)->name('ciot.index');
+    Route::get('/ciot/{ciot}', Ciots\Detalhe::class)->name('ciot.ver');
 
     /*
      * 5010 — Faturas. Agrupa CT-e autorizados de um tomador; cada parcela vira

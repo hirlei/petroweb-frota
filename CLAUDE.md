@@ -110,6 +110,21 @@ apaga. Toda mudança de valor/status passa por `App\Services\Financeiro\Faturame
 encargos são lógica pura em `App\Domain\Financeiro` (centavos inteiros: a soma
 das parcelas é sempre o total).
 
+**CIOT (4050) e vale-pedágio saem junto com o MDF-e.** Desde o "CIOT para Todos"
+(Res. ANTT 6.078/2026, Lei 15.485/2026) **toda** viagem remunerada tem CIOT — não
+só a de TAC. Quem registra é decidido por `App\Domain\Fiscal\RegrasCiot::modalidade`
+(via `Viagem::modalidadeCiot()`): TAC → instituição de pagamento (`ipef`); frota
+própria → direto na ANTT (`antt`); caminhão de outra transportadora → número
+informado (`informado`); carga própria/transferência em veículo próprio → dispensado.
+Um clique em "Emitir" no 4020 roda `App\Services\Fiscal\EmissaoMdfeCompleta`:
+CIOT → vale → SEFAZ, nessa ordem; sem CIOT o MDF-e não sai (rejeição 684 —
+homologação já, produção a partir de `ciot.obrigatorio_desde`). CIOT e vale são da
+**viagem**, não do MDF-e: rejeição/reemissão reaproveita os mesmos — nunca registre
+nem pague de novo. Toda mudança passa por `ServicoCiot` / `ServicoValePedagio`
+(pagamento com `lockForUpdate`); 4050 e 4030 são consulta, saldo, cancelamento e
+reenvio. Gateways atrás de `CiotGateway` e `ValePedagioGateway`; hoje só o
+**emissor de teste** (`config/ciot.php`) — número fictício, não vale na fiscalização.
+
 **Nenhuma chamada à SEFAZ dentro do request.** Tudo é job com retentativa,
 backoff e status persistido, atrás da `SefazGatewayInterface`.
 

@@ -98,6 +98,44 @@ class Viagem extends Model
         return $this->hasMany(Entrega::class);
     }
 
+    public function ciots(): HasMany
+    {
+        return $this->hasMany(Ciot::class);
+    }
+
+    /** O CIOT que vale para a viagem — no máximo um não cancelado (índice parcial). */
+    public function ciot(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Ciot::class)->where('status', '<>', 'cancelado');
+    }
+
+    public function valesPedagio(): HasMany
+    {
+        return $this->hasMany(ValePedagio::class);
+    }
+
+    /**
+     * Quem registra o CIOT desta viagem (App\Domain\Fiscal\RegrasCiot): pelo
+     * motorista (TAC?), pela propriedade do veículo de tração e pelo tipo.
+     */
+    public function modalidadeCiot(): string
+    {
+        $this->loadMissing(['veiculoTracao.proprietario', 'motorista']);
+        $v = $this->veiculoTracao;
+        $proprio = $v === null || $v->propriedade !== Veiculo::PROPRIEDADE_TERCEIRO;
+        $tp = $v?->proprietario_tp_transp ?: $v?->proprietario?->tp_transp;
+        if (! $proprio && ($tp === null || $tp === '') && $v?->proprietario !== null) {
+            $tp = $v->proprietario->ehPessoaFisica() ? '2' : '1';
+        }
+
+        return \App\Domain\Fiscal\RegrasCiot::modalidade(
+            (string) $this->tipo,
+            $proprio,
+            $tp !== null && $tp !== '' ? (string) $tp : null,
+            (bool) $this->motorista?->ehTac(),
+        );
+    }
+
     /** CT-e transportados nesta viagem (N:N, RN-02). */
     public function ctes(): BelongsToMany
     {

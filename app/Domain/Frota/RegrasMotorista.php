@@ -39,16 +39,17 @@ final class RegrasMotorista
         return $vinculo === self::VINCULO_CLT;
     }
 
-    /** Agregado e autônomo são TAC — RNTRC próprio, CIOT obrigatório. */
+    /** Agregado e autônomo são TAC — RNTRC próprio, CIOT pela instituição de pagamento. */
     public static function ehTac(string $vinculo): bool
     {
         return in_array($vinculo, [self::VINCULO_AGREGADO, self::VINCULO_AUTONOMO], true);
     }
 
     /**
-     * CIOT é devido quando o contratado é TAC (Lei 11.442/2007 art. 5º-A e
-     * Res. ANTT 5.862/2019). Motorista CLT roda sob o RNTRC da empresa e não
-     * gera CIOT; terceiro (outra transportadora) tampouco — ali há subcontrato.
+     * CIOT pela INSTITUIÇÃO DE PAGAMENTO, com o frete pago ao próprio motorista:
+     * só quando ele é TAC (Lei 11.442/2007 art. 5º-A). Desde o "CIOT para Todos"
+     * (Res. ANTT 6.078/2026) a viagem de motorista CLT também tem CIOT, mas
+     * registrado direto na ANTT e sem pagamento a ele — ver App\Domain\Fiscal\RegrasCiot.
      */
     public static function exigeCiot(string $vinculo): bool
     {
