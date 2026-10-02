@@ -234,6 +234,13 @@ grupo `tenant` com a pilha explícita ajudam, mas o que fecha é não usar view-
 Livewire — **nunca `Route::view` nem `Route::redirect`**. Rota de view só no grupo
 `central` (que não tem tenancy). É cacheável e determinística.
 
+**Livewire também.** O POST de atualização do Livewire vai para `/livewire/frota/update`,
+registrado no `TenancyServiceProvider` com o grupo `tenant` (`Livewire::setUpdateRoute`;
+caminho próprio porque o Livewire 4 dá 404 na rota padrão quando há customizada).
+Sem isso, toda interação Livewire volta 419 "This page has expired" — a sessão
+é lida do banco central. Se um dia usar upload (`WithFileUploads`), a rota de
+upload precisa do mesmo tratamento.
+
 **Verificação de e-mail.** O usuário é convidado pelo gestor — não há fluxo de
 `verification.notice`. Todo usuário nasce com `email_verified_at` preenchido
 (seeder e formulário de Usuários). Sem isso, o middleware `verified` derruba o
