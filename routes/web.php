@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\MenuController;
 use App\Http\Controllers\RastreamentoWebhookController;
 use App\Livewire\Abastecimentos;
 use App\Livewire\Composicoes;
@@ -41,6 +42,10 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     // Dashboard operacional (componente Livewire, não Route::view). Ver Inicio.
     Route::get('/', Inicio::class)->name('inicio');
+
+    // Menu H6 (igual ao ERP): abrir rotina pelo código e fixar nos Favoritos.
+    Route::get('/ir/{codigo}', [MenuController::class, 'ir'])->where('codigo', '[0-9]{4}')->name('menu.ir');
+    Route::post('/menu/fixar/{codigo}', [MenuController::class, 'fixar'])->where('codigo', '[0-9]{4}')->name('menu.fixar');
 
     /*
      * 1010 — Pessoas. O nome da rota é o que o config/navegacao.php procura e

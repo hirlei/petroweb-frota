@@ -89,6 +89,14 @@ nunca fill sólido saturado com texto branco. É o que o `x-button` já entrega
 `bg-primary text-white` só em elemento que NÃO é botão de ação (avatar, número
 de passo, chip de toggle).
 
+**A moldura é a do ERP.** Menu lateral H6, barra superior, fita de indicadores,
+paleta Ctrl K, cores e tela inicial são **iguais ao PetroWeb ERP** (decisão de
+02/10/2026). O CSS vem copiado do ERP em `resources/views/partials/moldura-estilos.blade.php`
+— ao mudar algo lá, traga para cá. A montagem do menu (rotina ativa, bolinhas de
+pendência, Recentes, Favoritos e o sino) é `App\Support\Navegacao`; grupo novo
+precisa de `icon` no `config/navegacao.php`. Conteúdo das telas segue os tokens
+âmbar; azul `#1A3DA3` e laranja `#FF6200` só na moldura.
+
 **Documento fiscal autorizado é imutável.** Nunca `UPDATE` em CT-e ou MDF-e
 autorizado — corrige-se por evento ou cancela-se e reemite.
 
