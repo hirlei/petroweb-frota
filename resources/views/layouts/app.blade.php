@@ -246,7 +246,7 @@
             </button>
 
             <div class="tb-band hidden md:flex">
-                <x-brand-logo size="sm" />
+                <x-brand-logo size="lg" />
             </div>
 
             {{-- Ajuda --}}

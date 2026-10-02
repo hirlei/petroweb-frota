@@ -55,7 +55,7 @@
         .info{display:flex;flex-direction:column;background:var(--info-bg)}
         .topo{background:var(--azul);color:#fff;padding:38px 56px 34px;position:relative}
         .topo::after{content:"";position:absolute;left:0;right:0;bottom:0;height:8px;background:var(--laranja)}
-        .logo-g{height:58px;width:auto;display:block}
+        .logo-g{height:82px;width:auto;display:block}
         .letreiro{margin-top:28px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:92px;line-height:.92;
             letter-spacing:-.3px;text-transform:uppercase;text-wrap:balance}
         .letreiro em{font-style:normal;color:var(--laranja-claro)}
@@ -156,7 +156,7 @@
     {{-- ═══════════════ ESQUERDA (apresentação) ═══════════════ --}}
     <section class="info fade" aria-label="Sobre o PetroWeb Frota">
         <div class="topo">
-            <img class="logo-g" src="{{ asset('img/petroweb-clara.png') }}" alt="PetroWeb">
+            <img class="logo-g" src="{{ asset('img/petroweb-frota-clara.png') }}" alt="PetroWeb Frota">
             <div class="letreiro">A frota inteira<br>num sistema <em>só.</em></div>
             <p class="lead">O PetroWeb Frota liga a coleta, a viagem, a entrega e o fiscal num sistema só. Cada frete é lançado uma vez e segue sozinho para o CT-e, o MDF-e e o custo da viagem.</p>
             <div class="publico">

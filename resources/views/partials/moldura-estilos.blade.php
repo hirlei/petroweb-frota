@@ -110,7 +110,7 @@
         .tb-busca span { flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .tb kbd, .tb-dd kbd { font: 600 9.5px 'JetBrains Mono', monospace; border: 1px solid var(--h6-cod-borda); background: var(--h6-cod-bg); color: var(--h6-cod-tx); border-radius: 4px; padding: 1px 5px; }
         @media (max-width: 1100px) { .tb-busca { width: 36px; padding: 0; justify-content: center; } .tb-busca span, .tb-busca kbd { display: none; } }
-        .tb-band { height: 36px; align-items: center; padding: 0 6px; } .tb-band img { max-height: 26px; max-width: 7rem; object-fit: contain; }
+        .tb-band { height: 36px; align-items: center; padding: 0 6px; } .tb-band img { max-height: 36px; max-width: 9.5rem; object-fit: contain; } /* Frota: logo com "FROTA" embaixo é mais alta que a do ERP */
         .tb-ib { position: relative; width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
             color: rgb(var(--color-text-secondary)); background: transparent; }
         @media (min-width: 768px) { .tb-menu-mob { display: none; } }
