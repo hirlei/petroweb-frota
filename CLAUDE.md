@@ -130,6 +130,16 @@ janela `ValesPedagio\Fornecedoras` (4030 e bloco do vale no 4020, evento
 exemplo** (CNPJ fictício, migration 2026_10_03_010000) — em produção, cadastrar a
 real e desativar as de exemplo.
 
+**Contas a pagar (5030).** Toda mudança passa por `App\Services\Financeiro\ContasPagar`.
+"Lançamentos esperando" = abastecimento com posto (uma conta por posto), OS encerrada em
+oficina externa (uma por OS) e CIOT de TAC (um por CIOT). Uma origem em no máximo uma
+conta ativa — índice parcial `conta_pagar_origens(empresa_id, origem_tipo, origem_id) WHERE ativo`.
+Cancelar cancela o **lançamento inteiro** (todas as parcelas do `grupo`) e devolve as
+origens. Conta de CIOT não se paga nem estorna aqui: espelha os `ciot_pagamentos` (forma
+`instituicao_ciot`) — o `ServicoCiot` chama o espelho depois do commit. A relação de
+`PagamentoConta` é `contaPagar()` (a coluna `conta` é a conta bancária). Vencimento pelo
+prazo do favorecido (`pessoas.prazo_faturamento`), sem prazo 30 dias.
+
 **DACTE e DAMDFE (PDF A4).** `App\Services\Fiscal\Impressao\DocumentoAuxiliar` monta
 os dados; o leiaute é `resources/views/fiscal/{dacte,damdfe}.blade.php`, convertido pelo
 **dompdf** — por isso só tabela (sem flex/grid) e imagens como SVG em data URI. Código de

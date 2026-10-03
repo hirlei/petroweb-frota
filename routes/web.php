@@ -9,6 +9,7 @@ use App\Http\Controllers\RastreamentoWebhookController;
 use App\Livewire\Abastecimentos;
 use App\Livewire\Ciots;
 use App\Livewire\Composicoes;
+use App\Livewire\ContasPagar;
 use App\Livewire\ContasReceber;
 use App\Livewire\Cte;
 use App\Livewire\Despesas;
@@ -200,6 +201,14 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
      * 5020 — Contas a receber. Parcelas das faturas, recebimento e estorno.
      */
     Route::get('/contas-receber', ContasReceber\Index::class)->name('contas-receber.index');
+
+    /*
+     * 5030 — Contas a pagar. Lançamentos esperando (abastecimento, OS, CIOT),
+     * conta manual, pagamento e estorno. Regras em Services\Financeiro\ContasPagar.
+     */
+    Route::get('/contas-pagar', ContasPagar\Index::class)->name('contas-pagar.index');
+    Route::get('/contas-pagar/lancar', ContasPagar\Lancar::class)->name('contas-pagar.lancar');
+    Route::get('/contas-pagar/nova', ContasPagar\Formulario::class)->name('contas-pagar.criar');
 
     /*
      * 9020 — Usuários. Convidados pelo gestor; papéis via spatie/permission.
