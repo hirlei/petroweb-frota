@@ -25,9 +25,6 @@
                        :subtitle="'Origem: viagem ' . ($mdfe->viagem?->numero ?? '—') . ' · modelo 58 · série ' . $mdfe->serie">
             <x-slot:actions>
                 <x-button variant="ghost" size="sm" :href="route('mdfe.index')" wire:navigate>Voltar</x-button>
-                @if ($mdfe->status === 'rascunho')
-                    @can('emitir', $mdfe)<x-button variant="primary" size="sm" icon="lock" wire:click="emitir" wire:loading.attr="disabled">Emitir (2FA)</x-button>@endcan
-                @endif
             </x-slot:actions>
         </x-page-header>
 
@@ -36,6 +33,11 @@
         @endif
         @if (session('erro'))
             <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800/50 dark:bg-red-950/50 dark:text-red-300">{{ session('erro') }}</div>
+        @endif
+        @if ($mdfe->status === 'rejeitado')
+            <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800/50 dark:bg-red-950/50 dark:text-red-300">
+                <b>Rejeitado pela SEFAZ:</b> {{ $mdfe->codigo_status }} · {{ $mdfe->motivo_status }}. Corrija e emita de novo — o CIOT e o vale-pedágio da viagem são reaproveitados.
+            </div>
         @endif
 
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -73,9 +75,16 @@
                         @endforelse
                     </div>
                 </x-card>
+
+                @include('livewire.mdfe.partials.ciot')
+                @include('livewire.mdfe.partials.vale')
             </div>
 
             <div class="flex flex-col gap-4">
+                @if ($this->emitivel())
+                    @include('livewire.mdfe.partials.emitir')
+                @endif
+
                 <x-card padding="none" class="overflow-hidden">
                     <div class="flex items-center gap-2 border-b border-border px-5 py-3.5"><x-icon name="upload" class="h-4 w-4 text-text-secondary" /><h2 class="text-sm font-semibold text-text">Transmissão</h2>@if ($this->ambiente === 2)<x-badge variant="warning" class="ml-auto text-[10px]">Homologação</x-badge>@endif</div>
                     <div class="px-5 py-4">
@@ -85,17 +94,6 @@
                     </div>
                 </x-card>
 
-                <x-card padding="none" class="overflow-hidden">
-                    <div class="flex items-center gap-2 border-b border-border px-5 py-3.5"><x-icon name="ticket" class="h-4 w-4 text-text-secondary" /><h2 class="text-sm font-semibold text-text">Vale-pedágio</h2></div>
-                    <div class="px-5 py-4">
-                        @forelse ($mdfe->valesPedagio as $vp)
-                            <div class="flex items-center justify-between border-t border-border py-1.5 text-sm first:border-0"><span class="text-text-secondary">{{ $vp->veiculo?->placaFormatada() ?? '—' }}</span><span class="font-medium tabular-nums">R$ {{ number_format((float) $vp->valor, 2, ',', '.') }}</span></div>
-                        @empty
-                            <p class="text-sm text-text-muted">Sem vale-pedágio lançado.</p>
-                        @endforelse
-                        <div class="mt-2 flex items-start gap-2 rounded-r-md border-l-[3px] border-warning bg-yellow-50 px-3 py-2 text-[11px] text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300"><x-icon name="alert-triangle" class="mt-px h-3 w-3 flex-shrink-0" /><span>Um registro por veículo. Multa por falta: R$ 3.000/veículo.</span></div>
-                    </div>
-                </x-card>
 
                 @if ($mdfe->encerravel())
                     <x-card padding="none" class="overflow-hidden">
@@ -122,5 +120,7 @@
                 </x-card>
             </div>
         </div>
+
+        @include('livewire.mdfe.partials.resultado')
     @endif
 </div>

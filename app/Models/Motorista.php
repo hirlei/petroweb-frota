@@ -67,7 +67,7 @@ class Motorista extends Model
         return RegrasMotorista::controlaJornada((string) $this->vinculo);
     }
 
-    /** Agregado e autônomo são TAC: RNTRC próprio e CIOT obrigatório. */
+    /** Agregado e autônomo são TAC: RNTRC próprio e CIOT pela instituição de pagamento. */
     public function ehTac(): bool
     {
         return RegrasMotorista::ehTac((string) $this->vinculo);

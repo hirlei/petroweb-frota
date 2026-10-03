@@ -40,6 +40,8 @@ class Formulario extends Component
         abort_unless(Auth::user()?->can('mdfe.emitir') ?? false, 403);
 
         if ($vale?->exists) {
+            // Compra do sistema, dispensa, cancelado ou já num MDF-e autorizado: só consulta.
+            abort_unless($vale->editavel(), 403, 'Este vale-pedágio não pode mais ser editado.');
             $this->vale = $vale;
             $this->viagem_id = $vale->viagem_id;
             $this->veiculo_id = $vale->veiculo_id;
@@ -116,6 +118,7 @@ class Formulario extends Component
 
     public function salvar()
     {
+        abort_if($this->vale?->exists && ! $this->vale->fresh()->editavel(), 403, 'Este vale-pedágio não pode mais ser editado.');
         $this->validate();
 
         $fornecedor = FornecedorVpo::query()->findOrFail($this->fornecedor_vpo_id);

@@ -26,8 +26,8 @@ return [
 
     'vinculos_descricoes' => [
         'clt'      => 'Empregado. Tem jornada, escala e ponto. Opera sob o RNTRC da empresa.',
-        'agregado' => 'TAC com contrato de exclusividade. RNTRC próprio, CIOT obrigatório, sem jornada.',
-        'autonomo' => 'TAC avulso. RNTRC próprio, CIOT obrigatório, sem jornada.',
+        'agregado' => 'TAC com contrato de exclusividade. RNTRC próprio, CIOT pela instituição de pagamento, sem jornada.',
+        'autonomo' => 'TAC avulso. RNTRC próprio, CIOT pela instituição de pagamento, sem jornada.',
         'terceiro' => 'Motorista de outra transportadora — há subcontrato, não vínculo.',
     ],
 
