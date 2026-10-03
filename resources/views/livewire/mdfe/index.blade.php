@@ -43,7 +43,7 @@
                                 <td class="px-4 py-3 text-sm text-text-secondary">{{ $m->uf_inicio ?? '—' }} → {{ $m->uf_fim ?? '—' }}</td>
                                 <td class="px-4 py-3 text-sm text-text-secondary tabular-nums">{{ $m->documentos_count }}</td>
                                 <td class="px-4 py-3"><x-badge :variant="config('fiscal.mdfe.status_cores.' . $m->status, 'gray')" class="text-[10px]">{{ config('fiscal.mdfe.status.' . $m->status, $m->status) }}</x-badge></td>
-                                <td class="px-4 py-3 text-right"><a href="{{ route('mdfe.editar', $m) }}" wire:navigate class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary-soft"><x-icon name="eye" class="h-3.5 w-3.5" /> Abrir</a></td>
+                                <td class="whitespace-nowrap px-4 py-3 text-right">@if (in_array($m->status, ['autorizado', 'encerrado', 'cancelado', 'contingencia'], true))<a href="{{ route('mdfe.damdfe', $m) }}" target="_blank" rel="noopener" title="DAMDFE em PDF" aria-label="DAMDFE em PDF" class="inline-flex items-center rounded px-1.5 py-1 text-text-secondary hover:bg-surface-elevated hover:text-text"><x-icon name="file-text" class="h-4 w-4" /></a>@endif<a href="{{ route('mdfe.editar', $m) }}" wire:navigate class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary-soft"><x-icon name="eye" class="h-3.5 w-3.5" /> Abrir</a></td>
                             </tr>
                         @endforeach
                     </tbody>

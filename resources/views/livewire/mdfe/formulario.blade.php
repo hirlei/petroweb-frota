@@ -25,6 +25,10 @@
                        :subtitle="'Origem: viagem ' . ($mdfe->viagem?->numero ?? '—') . ' · modelo 58 · série ' . $mdfe->serie">
             <x-slot:actions>
                 <x-button variant="ghost" size="sm" :href="route('mdfe.index')" wire:navigate>Voltar</x-button>
+                <x-button variant="neutral" size="sm" icon="file-text" :href="route('mdfe.damdfe', $mdfe)" target="_blank" rel="noopener"
+                          title="{{ in_array($mdfe->status, ['autorizado', 'encerrado', 'cancelado', 'contingencia'], true) ? 'Abrir o DAMDFE em PDF' : 'Prévia — não é documento fiscal' }}">
+                    {{ in_array($mdfe->status, ['autorizado', 'encerrado', 'cancelado', 'contingencia'], true) ? 'DAMDFE' : 'Prévia do DAMDFE' }}
+                </x-button>
             </x-slot:actions>
         </x-page-header>
 

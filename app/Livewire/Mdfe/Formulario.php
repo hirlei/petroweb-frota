@@ -336,8 +336,9 @@ class Formulario extends Component
         }
         $this->ciotResponsavel = (string) ($sug['responsavel_informado'] ?? '');
 
-        // Embarcador compra (recebido) → informar; transportadora compra (fornecido) → comprar.
-        $this->valeModo = $this->papelVale === 'fornecido' ? 'comprar' : 'informar';
+        // Padrão é comprar automático na emissão, com a primeira fornecedora ativa.
+        // "Já comprado" fica para quando o embarcador passou o vale pronto.
+        $this->valeModo = 'comprar';
         $this->valeFornecedorId = $this->fornecedoresVpo->first()?->id;
     }
 
