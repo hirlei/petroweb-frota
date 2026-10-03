@@ -19,7 +19,7 @@ class PermissoesSeeder extends Seeder
 {
     /** Permissões que só valem com segundo fator configurado. */
     public const EXIGEM_2FA = [
-        'cte.emitir', 'cte.cancelar', 'cte.inutilizar',
+        'cte.emitir', 'cte.cancelar', 'cte.corrigir', 'cte.inutilizar',
         'mdfe.emitir', 'mdfe.encerrar',
         'certificado.gerenciar', 'permissao.gerenciar',
     ];
@@ -43,9 +43,9 @@ class PermissoesSeeder extends Seeder
         'rota.consultar', 'rota.gerenciar',
         'ocorrencia.consultar', 'ocorrencia.gerenciar',
         // Fiscal
-        'cte.consultar', 'cte.emitir', 'cte.cancelar', 'cte.inutilizar',
+        'cte.consultar', 'cte.emitir', 'cte.cancelar', 'cte.corrigir', 'cte.inutilizar',
         'mdfe.consultar', 'mdfe.emitir', 'mdfe.encerrar',
-        'certificado.gerenciar',
+        'certificado.gerenciar', 'xml.exportar',
         'ciot.consultar', 'ciot.gerenciar',
         // Financeiro (5010 Faturas, 5020 Contas a receber, 5030 Contas a pagar)
         'fatura.consultar', 'fatura.gerenciar', 'recebimento.registrar',
@@ -59,8 +59,8 @@ class PermissoesSeeder extends Seeder
         'Fiscal' => [
             'pessoa.consultar', 'produto.consultar', 'tabela-frete.consultar',
             'veiculo.consultar', 'motorista.consultar', 'viagem.consultar',
-            'cte.consultar', 'cte.emitir', 'cte.cancelar', 'cte.inutilizar',
-            'mdfe.consultar', 'mdfe.emitir', 'mdfe.encerrar', 'certificado.gerenciar',
+            'cte.consultar', 'cte.emitir', 'cte.cancelar', 'cte.corrigir', 'cte.inutilizar',
+            'mdfe.consultar', 'mdfe.emitir', 'mdfe.encerrar', 'certificado.gerenciar', 'xml.exportar',
             'ciot.consultar', 'ciot.gerenciar',
         ],
         'Operação' => [
@@ -82,7 +82,7 @@ class PermissoesSeeder extends Seeder
             'pessoa.consultar', 'tabela-frete.consultar', 'tabela-frete.gerenciar',
             'viagem.consultar', 'despesa-viagem.consultar', 'despesa-viagem.gerenciar',
             'acerto.consultar', 'acerto.gerenciar',
-            'cte.consultar', 'mdfe.consultar',
+            'cte.consultar', 'mdfe.consultar', 'xml.exportar',
             'abastecimento.consultar', 'manutencao.consultar',
             'fatura.consultar', 'fatura.gerenciar', 'recebimento.registrar',
             'conta-pagar.consultar', 'conta-pagar.gerenciar', 'pagamento.registrar',

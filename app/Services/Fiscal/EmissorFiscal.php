@@ -9,6 +9,7 @@ use App\Models\Mdfe;
 use App\Services\Fiscal\Sefaz\RespostaSefaz;
 use App\Services\Fiscal\Sefaz\SefazGateway;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -53,6 +54,7 @@ class EmissorFiscal
                     'status' => 'registrado',
                     'codigo_status' => $r->codigo,
                     'motivo_status' => $r->motivo,
+                    'criado_por' => Auth::id(),
                 ]);
             });
         }
@@ -129,6 +131,6 @@ class EmissorFiscal
 
     private function proximaSequencia(Cte $cte, string $tipo): int
     {
-        return (int) $cte->eventos()->where('tipo_evento', $tipo)->max('sequencia') + 1;
+        return (int) $cte->eventos()->reorder()->where('tipo_evento', $tipo)->max('sequencia') + 1;
     }
 }

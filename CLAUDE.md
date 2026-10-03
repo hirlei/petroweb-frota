@@ -154,6 +154,17 @@ cancela no 5030 — só reabrindo o acerto, e só sem pagamento. Reabrir marca `
 Fila e bolinha só a partir de `financeiro.acerto.desde`. Recibo: `operacao/recibo-acerto`
 (dompdf, `?html=1`).
 
+**Eventos do CT-e.** Carta de correção (110110): regras puras em
+`App\Domain\Fiscal\RegrasCce` (vedações do Conv. SINIEF 06/89 art. 58-B / NT 2024.001,
+limite de 20, a última consolida as anteriores — a tela já abre com as correções vigentes);
+transmissão em `App\Services\Fiscal\CartaCorrecao` (trava o CT-e; recusa da SEFAZ não
+consome a sequência). Cancelamento só dentro de `fiscal.cte.cancelamento_horas` (168h).
+**Inutilização de CT-e não existe** desde o CT-e 4.00 (Ajuste SINIEF 31/2022) — não criar;
+a 4060 só mostra a conferência da numeração (`ConferenciaNumeracao`). Exportar XML (4060):
+`App\Services\Fiscal\ExportadorXml`, mês no fuso `fiscal.fuso` (banco em UTC), ZIP no
+disco `fiscal.xml.disco` + `resumo.csv` (";", BOM). Relação ordenada + `count()`/`max()`
+quebra no Postgres: use `reorder()` ou relação sem `orderBy`.
+
 **DACTE e DAMDFE (PDF A4).** `App\Services\Fiscal\Impressao\DocumentoAuxiliar` monta
 os dados; o leiaute é `resources/views/fiscal/{dacte,damdfe}.blade.php`, convertido pelo
 **dompdf** — por isso só tabela (sem flex/grid) e imagens como SVG em data URI. Código de

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\DocumentoAuxiliarController;
+use App\Http\Controllers\ExportacaoXmlController;
 use App\Http\Controllers\FaturaImpressaoController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\RastreamentoWebhookController;
@@ -16,6 +17,7 @@ use App\Livewire\ContasReceber;
 use App\Livewire\Cte;
 use App\Livewire\Despesas;
 use App\Livewire\Entregas;
+use App\Livewire\ExportacaoXml;
 use App\Livewire\Faturas;
 use App\Livewire\Filiais;
 use App\Livewire\Inicio;
@@ -175,6 +177,7 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/cte/novo', Cte\Formulario::class)->name('cte.criar');
     Route::get('/cte/{cte}', Cte\Formulario::class)->name('cte.editar');
     Route::get('/cte/{cte}/dacte', [DocumentoAuxiliarController::class, 'dacte'])->name('cte.dacte');
+    Route::get('/cte/{cte}/cce/{evento}', [DocumentoAuxiliarController::class, 'cce'])->name('cte.cce');
 
     /*
      * 4020 — MDF-e (modelo 58). Nasce da viagem; RN-03.
@@ -197,6 +200,12 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
      */
     Route::get('/ciot', Ciots\Index::class)->name('ciot.index');
     Route::get('/ciot/{ciot}', Ciots\Detalhe::class)->name('ciot.ver');
+
+    /*
+     * 4060 — Exportar XML: o mês para o contador (CT-e, MDF-e e eventos) num ZIP.
+     */
+    Route::get('/fiscal/exportar-xml', ExportacaoXml\Index::class)->name('fiscal.xml.index');
+    Route::get('/fiscal/exportar-xml/{exportacao}/baixar', ExportacaoXmlController::class)->name('fiscal.xml.baixar');
 
     /*
      * 5010 — Faturas. Agrupa CT-e autorizados de um tomador; cada parcela vira

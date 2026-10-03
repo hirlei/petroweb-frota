@@ -103,6 +103,30 @@ namespace PHPUnit\Framework {
             }
         }
 
+        protected function assertArrayHasKey(int|string $chave, array $lista, string $msg = ''): void
+        {
+            self::$assercoes++;
+            if (! array_key_exists($chave, $lista)) {
+                $this->falhar(sprintf('assertArrayHasKey falhou: falta a chave %s', var_export($chave, true)), $msg);
+            }
+        }
+
+        protected function assertArrayNotHasKey(int|string $chave, array $lista, string $msg = ''): void
+        {
+            self::$assercoes++;
+            if (array_key_exists($chave, $lista)) {
+                $this->falhar(sprintf('assertArrayNotHasKey falhou: a chave %s existe', var_export($chave, true)), $msg);
+            }
+        }
+
+        protected function assertStringContainsString(string $agulha, string $texto, string $msg = ''): void
+        {
+            self::$assercoes++;
+            if (! str_contains($texto, $agulha)) {
+                $this->falhar(sprintf('assertStringContainsString falhou: "%s" não está em "%s"', $agulha, $texto), $msg);
+            }
+        }
+
         protected function assertInstanceOf(string $classe, mixed $objeto, string $msg = ''): void
         {
             self::$assercoes++;

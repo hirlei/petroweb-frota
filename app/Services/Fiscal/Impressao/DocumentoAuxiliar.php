@@ -6,8 +6,10 @@ namespace App\Services\Fiscal\Impressao;
 
 use App\Domain\Cadastro\Documento;
 use App\Domain\Fiscal\CodigoBarras128;
+use App\Domain\Fiscal\RegrasCce;
 use App\Domain\Fiscal\RegrasCiot;
 use App\Models\Cte;
+use App\Models\CteEvento;
 use App\Models\Filial;
 use App\Models\Mdfe;
 use App\Models\Municipio;
@@ -131,6 +133,30 @@ final class DocumentoAuxiliar
             'documentos' => $documentos,
             'seguro' => $mdfe->seguro,
             'viagem' => $mdfe->viagem?->numero,
+        ];
+    }
+
+    /**
+     * Impressão da carta de correção (110110) — comprovante que acompanha o
+     * DACTE quando o cliente ou a fiscalização pedir.
+     *
+     * @return array<string,mixed>
+     */
+    public function cce(Cte $cte, CteEvento $evento): array
+    {
+        $cte->loadMissing('filial.municipio');
+        $chave = $this->chaveValida($cte->chave);
+
+        return [
+            'cte' => $cte,
+            'evento' => $evento,
+            'emitente' => $this->emitente($cte->filial),
+            'homologacao' => (int) $cte->ambiente === 2,
+            'numero' => number_format((int) $cte->numero, 0, ',', '.'),
+            'chaveFormatada' => $chave ? $this->formatarChave($chave) : '—',
+            'correcoes' => array_values((array) ($evento->correcoes ?? [])),
+            'catalogo' => RegrasCce::CATALOGO,
+            'condicao' => RegrasCce::CONDICAO_USO,
         ];
     }
 
