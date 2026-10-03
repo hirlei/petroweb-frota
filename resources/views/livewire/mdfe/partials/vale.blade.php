@@ -99,10 +99,13 @@
 
 
             <p class="mt-2 text-[11.5px] leading-relaxed text-text-secondary">
+                @if ($valeModo === 'comprar')
+                    Compra automática na emissão, pela fornecedora escolhida, e já vinculada ao MDF-e.
+                @endif
                 @if ($papel === 'fornecido')
                     Quem paga é a transportadora: contratou TAC e vira embarcadora equiparada (multa de R$ 3.000 por veículo sem vale).
                 @else
-                    Normalmente o embarcador compra e passa o número: marque "Já comprado".
+                    Se o embarcador já comprou e passou o número, marque "Já comprado".
                 @endif
                 O vale não entra no frete.
             </p>

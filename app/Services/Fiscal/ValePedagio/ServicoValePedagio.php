@@ -165,7 +165,11 @@ final class ServicoValePedagio
         $viagem->loadMissing('filial');
         $papel = $this->papel($viagem);
         $tomador = $papel === 'recebido' ? $viagem->ctes()->with('tomador')->first()?->tomador : null;
-        $pagador = $papel === 'fornecido' ? $viagem->filial?->cnpj : $tomador?->documento;
+        // Comprado pelo sistema: quem paga é a transportadora. Informado (embarcador
+        // comprou): quem paga é o tomador do CT-e.
+        $pagador = ($papel === 'fornecido' || ($campos['origem'] ?? null) === 'compra')
+            ? $viagem->filial?->cnpj
+            : $tomador?->documento;
 
         return ValePedagio::create($campos + [
             'viagem_id' => $viagem->id,
