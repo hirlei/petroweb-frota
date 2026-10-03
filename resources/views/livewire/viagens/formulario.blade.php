@@ -133,18 +133,40 @@
                     <h2 class="text-sm font-semibold text-text">Custos e receita</h2>
                 </div>
                 <div class="px-5 py-5">
-                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                        <x-input label="Combustível (R$)" type="number" wire:model.live.debounce.500ms="custo_combustivel" />
-                        <x-input label="Pedágio (R$)" type="number" wire:model.live.debounce.500ms="custo_pedagio" />
-                        <x-input label="Motorista (R$)" type="number" wire:model.live.debounce.500ms="custo_motorista" />
-                        <x-input label="Manutenção (R$)" type="number" wire:model.live.debounce.500ms="custo_manutencao" />
-                        <x-input label="Outros (R$)" type="number" wire:model.live.debounce.500ms="custo_outros" />
-                        <x-input label="Receita total (R$)" type="number" wire:model.live.debounce.500ms="receita_total" />
+                    @php
+                        $comps = ['custo_combustivel' => 'Combustível', 'custo_terceiro' => 'Terceiros (CIOT)', 'custo_pedagio' => 'Pedágio',
+                                  'custo_motorista' => 'Motorista', 'custo_manutencao' => 'Manutenção', 'custo_outros' => 'Outros'];
+                        $temCtes = $this->temCtes();
+                    @endphp
+                    @if ($viagem?->exists)
+                        <div class="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-3">
+                            @foreach ($comps as $col => $rotulo)
+                                <div class="flex items-baseline justify-between gap-2 border-b border-border py-1.5 text-sm">
+                                    <span class="text-text-secondary">{{ $rotulo }}</span>
+                                    <b class="font-mono font-medium text-text">{{ number_format((float) $viagem->{$col}, 2, ',', '.') }}</b>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        @if ($temCtes)
+                            <div>
+                                <x-input-label>Receita (R$)</x-input-label>
+                                <p class="mt-1 rounded-md border border-border bg-surface-elevated px-3 py-2 font-mono text-sm text-text">{{ number_format((float) $viagem->receita_total, 2, ',', '.') }}</p>
+                                <p class="mt-1 text-[11.5px] text-text-secondary">Soma dos CT-e autorizados vinculados.</p>
+                            </div>
+                        @else
+                            <x-input label="Receita (R$)" type="number" step="0.01" min="0" wire:model.live.debounce.500ms="receita_total" help="Sem CT-e vinculado, informe a receita da viagem." />
+                        @endif
                     </div>
                     <div class="mt-3 flex items-start gap-2 rounded-r-md border-l-[3px] border-info bg-blue-50 px-3 py-2.5
                                 text-xs text-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
                         <x-icon name="info" class="mt-px h-3.5 w-3.5 flex-shrink-0" />
-                        <span>Os custos são recalculados por evento quando abastecimento, despesa ou OS da viagem mudam. A receita vem da soma dos CT-e vinculados.</span>
+                        <span>O custo vem dos lançamentos da viagem: abastecimento (2060), despesas (3060), OS (2050), CIOT (4050), vale-pedágio (4030) e acerto (3070). Não se digita aqui.
+                            @if ($viagem?->exists)
+                                @can('custo-viagem.consultar')<a href="{{ route('custos.ver', $viagem) }}" wire:navigate class="font-semibold underline">Ver de onde vem cada valor</a>@endcan
+                            @endif
+                        </span>
                     </div>
 
                     <div class="mt-5">
@@ -201,7 +223,7 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div class="rounded-lg bg-surface-elevated p-3">
                             <span class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Receita</span>
-                            <p class="mt-0.5 text-lg font-bold text-text tabular-nums">R$ {{ number_format((float) ($receita_total ?: 0), 2, ',', '.') }}</p>
+                            <p class="mt-0.5 text-lg font-bold text-text tabular-nums">R$ {{ number_format($calc['receita'], 2, ',', '.') }}</p>
                         </div>
                         <div class="rounded-lg bg-surface-elevated p-3">
                             <span class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Custo total</span>
