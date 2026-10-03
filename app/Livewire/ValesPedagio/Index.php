@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\ValesPedagio;
 
+use App\Models\FornecedorVpo;
 use App\Models\ValePedagio;
 use App\Services\Fiscal\Ciot\CiotException;
 use App\Services\Fiscal\ValePedagio\ServicoValePedagio;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -73,6 +75,19 @@ class Index extends Component
             })
             ->orderByDesc('id')
             ->paginate(15);
+    }
+
+    /** Sem fornecedora ativa o vale não sai — o aviso do topo explica. */
+    #[Computed]
+    public function semFornecedora(): bool
+    {
+        return ! FornecedorVpo::query()->where('ativo', true)->exists();
+    }
+
+    #[On('fornecedoras-atualizadas')]
+    public function fornecedorasAtualizadas(): void
+    {
+        unset($this->semFornecedora);
     }
 
     public function abrirCancelamento(int $id): void

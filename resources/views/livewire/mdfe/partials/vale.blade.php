@@ -47,6 +47,14 @@
                 @endif
             </div>
 
+            @if ($this->fornecedoresVpo->isEmpty() && $valeModo !== 'dispensar')
+                <div class="mb-3 flex flex-wrap items-center gap-3 rounded-xl bg-amber-50 px-3.5 py-3 text-[12.5px] text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                    <x-icon name="alert-triangle" class="h-[18px] w-[18px] flex-shrink-0" />
+                    <div class="min-w-0 flex-1"><b class="block">Nenhuma fornecedora cadastrada</b><small class="text-[11.5px] text-text-secondary">Cadastre aqui mesmo, sem sair do MDF-e — ou marque "Sem pedágio" se a rota não tiver praça.</small></div>
+                    <x-button variant="primary" size="sm" wire:click="$dispatch('abrir-fornecedoras')">Cadastrar fornecedora</x-button>
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                     <span class="mb-1.5 block text-sm font-medium text-text-secondary">Como</span>
@@ -66,12 +74,15 @@
                         @endforeach
                     </x-select>
                 @else
-                    <x-select label="Fornecedora" wire:model="valeFornecedorId">
-                        <option value="">Selecione…</option>
-                        @foreach ($this->fornecedoresVpo as $f)
-                            <option value="{{ $f->id }}">{{ $f->razao_social }}</option>
-                        @endforeach
-                    </x-select>
+                    <div>
+                        <x-select label="Fornecedora" wire:model.live="valeFornecedorId">
+                            <option value="">{{ $this->fornecedoresVpo->isEmpty() ? 'Nenhuma cadastrada' : 'Selecione…' }}</option>
+                            @foreach ($this->fornecedoresVpo as $f)
+                                <option value="{{ $f->id }}">{{ $f->razao_social }}</option>
+                            @endforeach
+                        </x-select>
+                        <button type="button" wire:click="$dispatch('abrir-fornecedoras')" class="mt-1 text-[11.5px] font-semibold text-[var(--h6-azul-tx)] hover:underline">Gerenciar fornecedoras</button>
+                    </div>
                 @endif
             </div>
 
@@ -86,9 +97,7 @@
                 </div>
             @endif
 
-            @if ($this->fornecedoresVpo->isEmpty() && $valeModo !== 'dispensar')
-                <p class="mt-2 text-xs font-semibold text-red-600 dark:text-red-400">Nenhuma fornecedora de vale-pedágio cadastrada.</p>
-            @endif
+
             <p class="mt-2 text-[11.5px] leading-relaxed text-text-secondary">
                 @if ($papel === 'fornecido')
                     Quem paga é a transportadora: contratou TAC e vira embarcadora equiparada (multa de R$ 3.000 por veículo sem vale).

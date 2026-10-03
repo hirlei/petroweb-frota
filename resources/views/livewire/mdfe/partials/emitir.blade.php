@@ -22,9 +22,9 @@
         $etapas[] = ['Usa o vale da viagem', $vale->dispensado ? 'Dispensado' : 'Compra ' . $vale->idvpo];
     } else {
         $etapas[] = match ($valeModo) {
-            'informar' => ['Guarda o vale-pedágio', 'Comprado pelo embarcador'],
+            'informar' => ['Guarda o vale-pedágio', $valeFornecedorId ? 'Comprado pelo embarcador' : 'Falta a fornecedora'],
             'dispensar' => ['Dispensa o vale-pedágio', \App\Models\ValePedagio::MOTIVOS_DISPENSA[$valeMotivo] ?? ''],
-            default => ['Compra o vale-pedágio', $this->cotacaoVale !== null ? 'Estimativa R$ ' . $fmt($this->cotacaoVale) : ''],
+            default => ['Compra o vale-pedágio', ! $valeFornecedorId ? 'Falta a fornecedora' : ($this->cotacaoVale !== null ? 'Estimativa R$ ' . $fmt($this->cotacaoVale) : '')],
         };
     }
 

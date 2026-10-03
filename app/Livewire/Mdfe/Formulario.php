@@ -21,6 +21,7 @@ use Throwable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use RuntimeException;
 
@@ -259,6 +260,19 @@ class Formulario extends Component
             new DateTimeImmutable('today'),
             new DateTimeImmutable((string) config('ciot.obrigatorio_desde', '2026-11-23')),
         );
+    }
+
+    /** Fornecedora cadastrada na janela sem sair do MDF-e — já vem escolhida. */
+    #[On('fornecedoras-atualizadas')]
+    public function fornecedorasAtualizadas(?int $id = null): void
+    {
+        unset($this->fornecedoresVpo);
+        $ativas = $this->fornecedoresVpo;
+        if ($id !== null && $ativas->contains('id', $id)) {
+            $this->valeFornecedorId = $id;
+        } elseif (! $ativas->contains('id', $this->valeFornecedorId)) {
+            $this->valeFornecedorId = $ativas->first()?->id;
+        }
     }
 
     public function definirPercentual(string $pct): void

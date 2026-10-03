@@ -3,6 +3,7 @@
     <x-page-header title="Vale-pedágio" subtitle="Comprado ou informado na emissão do MDF-e (4020). Aqui: consulta, cancelamento e lançamento manual.">
         <x-slot:actions>
             @can('mdfe.emitir')
+                <x-button variant="neutral" size="sm" icon="settings" wire:click="$dispatch('abrir-fornecedoras')">Fornecedoras</x-button>
                 <x-button variant="primary" size="sm" icon="plus" :href="route('vale-pedagio.criar')" wire:navigate>Lançar manualmente</x-button>
             @endcan
         </x-slot:actions>
@@ -10,6 +11,16 @@
 
     @if (session('sucesso'))
         <div class="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800/50 dark:bg-green-950/50 dark:text-green-300"><x-icon name="check" class="w-4 h-4 flex-shrink-0" /> {{ session('sucesso') }}</div>
+    @endif
+
+    @if ($this->semFornecedora)
+        <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-amber-50 px-4 py-3 text-[12.5px] leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+            <x-icon name="alert-triangle" class="h-[18px] w-[18px] flex-shrink-0" />
+            <div class="min-w-0 flex-1"><b>Nenhuma fornecedora cadastrada.</b> Sem ela o vale-pedágio não sai, e o MDF-e para nessa etapa. Cadastre a fornecedora que você usa (Sem Parar, ConectCar, Veloe, Repom…).</div>
+            @can('mdfe.emitir')
+                <x-button variant="primary" size="sm" wire:click="$dispatch('abrir-fornecedoras')">Cadastrar fornecedora</x-button>
+            @endcan
+        </div>
     @endif
 
     <div class="mb-4 flex items-center gap-3">
@@ -26,7 +37,7 @@
         <div class="flex items-center gap-2 border-b border-border px-5 py-3.5"><x-icon name="ticket" class="h-4 w-4 text-text-secondary" /><h2 class="text-sm font-semibold text-text">Lançamentos</h2><span class="text-sm text-text-muted">({{ number_format($this->vales->total(), 0, ',', '.') }})</span></div>
 
         @if ($this->vales->isEmpty())
-            <x-empty-state icon="ticket" title="Nenhum vale-pedágio" description="Lance um vale por veículo da composição — a fornecedora é validada contra a ANTT." />
+            <x-empty-state icon="ticket" title="Nenhum vale-pedágio" description="Os vales comprados ou informados na emissão do MDF-e (4020) aparecem aqui." />
         @else
             <div class="overflow-x-auto">
                 <table class="w-full">
@@ -74,6 +85,10 @@
         <x-icon name="alert-triangle" class="mt-0.5 h-4 w-4 flex-shrink-0" />
         <span>Quem subcontrata TAC vira embarcador equiparado e é quem paga o vale. Multa por falta: R$ 3.000/veículo.</span>
     </div>
+
+    @can('mdfe.emitir')
+        <livewire:vales-pedagio.fornecedoras />
+    @endcan
 
     @if ($cancelandoId)
         <div class="fixed inset-0 z-[90] flex items-start justify-center bg-[rgba(15,26,58,.45)] px-4 pt-[10vh]" wire:keydown.escape.window="$set('cancelandoId', null)">
