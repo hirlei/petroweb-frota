@@ -27,6 +27,12 @@ return [
             'cancelado' => 'gray', 'contingencia' => 'warning',
         ],
         'tomadores' => [0 => 'Remetente', 1 => 'Expedidor', 2 => 'Recebedor', 3 => 'Destinatário', 4 => 'Outros'],
+        // Situação tributária do ICMS no DACTE.
+        'cst' => [
+            '00' => 'Tributação normal do ICMS', '20' => 'Tributação com redução de BC', '40' => 'Isenta',
+            '41' => 'Não tributada', '51' => 'Diferida', '60' => 'Cobrado por substituição tributária',
+            '90' => 'Outros', 'SN' => 'Simples Nacional',
+        ],
     ],
 
     'mdfe' => [
@@ -41,4 +47,11 @@ return [
     ],
 
     'ambientes' => [1 => 'Produção', 2 => 'Homologação'],
+
+    // URL de consulta do QR Code do DACTE/DAMDFE quando a SEFAZ não devolver o
+    // texto pronto (qrCodCTe / qrCodMDFe). Padrão: portal da SVRS.
+    'qrcode' => [
+        'cte' => env('QRCODE_CTE_URL', 'https://dfe-portal.svrs.rs.gov.br/cte/qrCode'),
+        'mdfe' => env('QRCODE_MDFE_URL', 'https://dfe-portal.svrs.rs.gov.br/mdfe/qrCode'),
+    ],
 ];

@@ -59,7 +59,10 @@
                                 <td class="px-4 py-3 text-sm text-text-secondary">{{ $cte->municipioInicio?->nome ?? '—' }} <span class="text-text-muted">→</span> {{ $cte->municipioFim?->nome ?? '—' }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-text tabular-nums">R$ {{ number_format((float) $cte->valor_total_servico, 2, ',', '.') }}</td>
                                 <td class="px-4 py-3"><x-badge :variant="config('fiscal.cte.status_cores.' . $cte->status, 'gray')" class="text-[10px]">{{ config('fiscal.cte.status.' . $cte->status, $cte->status) }}</x-badge></td>
-                                <td class="px-4 py-3 text-right">
+                                <td class="whitespace-nowrap px-4 py-3 text-right">
+                                    @if (in_array($cte->status, ['autorizado', 'cancelado', 'contingencia'], true))
+                                        <a href="{{ route('cte.dacte', $cte) }}" target="_blank" rel="noopener" title="DACTE em PDF" aria-label="DACTE em PDF" class="inline-flex items-center rounded px-1.5 py-1 text-text-secondary hover:bg-surface-elevated hover:text-text"><x-icon name="file-text" class="h-4 w-4" /></a>
+                                    @endif
                                     <a href="{{ route('cte.editar', $cte) }}" wire:navigate class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary-soft">
                                         <x-icon name="eye" class="h-3.5 w-3.5" /> Abrir
                                     </a>

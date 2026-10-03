@@ -74,6 +74,16 @@ class Cte extends Model
         return $this->belongsTo(Pessoa::class, 'destinatario_id');
     }
 
+    public function expedidor(): BelongsTo
+    {
+        return $this->belongsTo(Pessoa::class, 'expedidor_id');
+    }
+
+    public function recebedor(): BelongsTo
+    {
+        return $this->belongsTo(Pessoa::class, 'recebedor_id');
+    }
+
     public function municipioInicio(): BelongsTo
     {
         return $this->belongsTo(Municipio::class, 'municipio_inicio_id');

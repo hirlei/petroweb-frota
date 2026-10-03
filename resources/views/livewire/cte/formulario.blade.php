@@ -34,6 +34,12 @@
                        :subtitle="'Origem: ordem ' . ($cte->ordemColeta?->numero ?? '—') . ' · modelo 57 · série ' . $cte->serie">
             <x-slot:actions>
                 <x-button variant="ghost" size="sm" :href="route('cte.index')" wire:navigate>Voltar</x-button>
+                @if ($cte->exists)
+                    <x-button variant="neutral" size="sm" icon="file-text" :href="route('cte.dacte', $cte)" target="_blank" rel="noopener"
+                              title="{{ in_array($cte->status, ['autorizado', 'cancelado', 'contingencia'], true) ? 'Abrir o DACTE em PDF' : 'Prévia — não é documento fiscal' }}">
+                        {{ in_array($cte->status, ['autorizado', 'cancelado', 'contingencia'], true) ? 'DACTE' : 'Prévia do DACTE' }}
+                    </x-button>
+                @endif
                 @if ($editavel)
                     @can('emitir', $cte)
                         <x-button variant="primary" size="sm" icon="lock" wire:click="emitir" wire:loading.attr="disabled">Emitir (2FA)</x-button>

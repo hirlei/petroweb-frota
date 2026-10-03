@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\DocumentoAuxiliarController;
 use App\Http\Controllers\FaturaImpressaoController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\RastreamentoWebhookController;
@@ -162,6 +163,7 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/cte', Cte\Index::class)->name('cte.index');
     Route::get('/cte/novo', Cte\Formulario::class)->name('cte.criar');
     Route::get('/cte/{cte}', Cte\Formulario::class)->name('cte.editar');
+    Route::get('/cte/{cte}/dacte', [DocumentoAuxiliarController::class, 'dacte'])->name('cte.dacte');
 
     /*
      * 4020 — MDF-e (modelo 58). Nasce da viagem; RN-03.
@@ -169,6 +171,7 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/mdfe', Mdfe\Index::class)->name('mdfe.index');
     Route::get('/mdfe/novo', Mdfe\Formulario::class)->name('mdfe.criar');
     Route::get('/mdfe/{mdfe}', Mdfe\Formulario::class)->name('mdfe.editar');
+    Route::get('/mdfe/{mdfe}/damdfe', [DocumentoAuxiliarController::class, 'damdfe'])->name('mdfe.damdfe');
 
     /*
      * 4030 — Vale-pedágio (grupo valePed do MDF-e). Um por veículo.

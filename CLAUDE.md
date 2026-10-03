@@ -130,6 +130,15 @@ janela `ValesPedagio\Fornecedoras` (4030 e bloco do vale no 4020, evento
 exemplo** (CNPJ fictício, migration 2026_10_03_010000) — em produção, cadastrar a
 real e desativar as de exemplo.
 
+**DACTE e DAMDFE (PDF A4).** `App\Services\Fiscal\Impressao\DocumentoAuxiliar` monta
+os dados; o leiaute é `resources/views/fiscal/{dacte,damdfe}.blade.php`, convertido pelo
+**dompdf** — por isso só tabela (sem flex/grid) e imagens como SVG em data URI. Código de
+barras CODE-128C da chave é `App\Domain\Fiscal\CodigoBarras128` (puro, conferido contra
+o reportlab); QR Code é `App\Support\Impressao\QrCodeSvg` (codificador do bacon,
+retângulos à mão). QR usa o texto da SEFAZ (`payload.qrcode`) e, sem ele, a URL de
+`fiscal.qrcode`. Marca d'água: homologação "Sem valor fiscal", rascunho/rejeitado
+"Prévia", cancelado "Cancelado". `?html=1` na rota mostra a página em HTML.
+
 **Nenhuma chamada à SEFAZ dentro do request.** Tudo é job com retentativa,
 backoff e status persistido, atrás da `SefazGatewayInterface`.
 
