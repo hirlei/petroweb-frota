@@ -122,5 +122,11 @@
         </div>
 
         @include('livewire.mdfe.partials.resultado')
+
+        @if ($this->emitivel())
+            @can('emitir', $mdfe)
+                <livewire:vales-pedagio.fornecedoras />
+            @endcan
+        @endif
     @endif
 </div>

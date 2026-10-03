@@ -124,6 +124,11 @@ nem pague de novo. Toda mudança passa por `ServicoCiot` / `ServicoValePedagio`
 (pagamento com `lockForUpdate`); 4050 e 4030 são consulta, saldo, cancelamento e
 reenvio. Gateways atrás de `CiotGateway` e `ValePedagioGateway`; hoje só o
 **emissor de teste** (`config/ciot.php`) — número fictício, não vale na fiscalização.
+Fornecedoras de vale (`fornecedores_vpo`, catálogo global do tenant) se cadastram na
+janela `ValesPedagio\Fornecedoras` (4030 e bloco do vale no 4020, evento
+`abrir-fornecedoras`); sem fornecedora ativa o vale não sai. Nascem quatro **de
+exemplo** (CNPJ fictício, migration 2026_10_03_010000) — em produção, cadastrar a
+real e desativar as de exemplo.
 
 **Nenhuma chamada à SEFAZ dentro do request.** Tudo é job com retentativa,
 backoff e status persistido, atrás da `SefazGatewayInterface`.
