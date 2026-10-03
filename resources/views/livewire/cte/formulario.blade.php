@@ -108,6 +108,12 @@
                         @if ($cte->status === 'rejeitado')
                             <div class="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800 dark:bg-red-950/40 dark:text-red-300">Corrija e emita novamente.</div>
                         @endif
+                        @if ($editavel)
+                            <div class="mt-3 flex items-start gap-2 rounded-lg bg-surface-elevated px-3 py-2 text-xs text-text-secondary">
+                                <x-icon name="info" class="mt-px h-3.5 w-3.5 flex-shrink-0" />
+                                <span>Carta de correção e cancelamento ficam disponíveis depois da autorização.</span>
+                            </div>
+                        @endif
                     </div>
                 </x-card>
 
