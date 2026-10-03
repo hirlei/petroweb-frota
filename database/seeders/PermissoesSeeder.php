@@ -38,6 +38,7 @@ class PermissoesSeeder extends Seeder
         'ordem-coleta.consultar', 'ordem-coleta.gerenciar',
         'viagem.consultar', 'viagem.gerenciar',
         'despesa-viagem.consultar', 'despesa-viagem.gerenciar',
+        'acerto.consultar', 'acerto.gerenciar',
         'entrega.consultar', 'entrega.gerenciar',
         'rota.consultar', 'rota.gerenciar',
         'ocorrencia.consultar', 'ocorrencia.gerenciar',
@@ -69,6 +70,7 @@ class PermissoesSeeder extends Seeder
             'ordem-coleta.consultar', 'ordem-coleta.gerenciar',
             'viagem.consultar', 'viagem.gerenciar',
             'despesa-viagem.consultar', 'despesa-viagem.gerenciar',
+            'acerto.consultar', 'acerto.gerenciar',
             'entrega.consultar', 'entrega.gerenciar',
             'rota.consultar', 'rota.gerenciar',
             'ocorrencia.consultar', 'ocorrencia.gerenciar',
@@ -79,6 +81,7 @@ class PermissoesSeeder extends Seeder
         'Financeiro' => [
             'pessoa.consultar', 'tabela-frete.consultar', 'tabela-frete.gerenciar',
             'viagem.consultar', 'despesa-viagem.consultar', 'despesa-viagem.gerenciar',
+            'acerto.consultar', 'acerto.gerenciar',
             'cte.consultar', 'mdfe.consultar',
             'abastecimento.consultar', 'manutencao.consultar',
             'fatura.consultar', 'fatura.gerenciar', 'recebimento.registrar',
@@ -87,7 +90,7 @@ class PermissoesSeeder extends Seeder
         ],
         'Consulta' => [
             'pessoa.consultar', 'produto.consultar', 'veiculo.consultar',
-            'motorista.consultar', 'viagem.consultar', 'despesa-viagem.consultar',
+            'motorista.consultar', 'viagem.consultar', 'despesa-viagem.consultar', 'acerto.consultar',
             'entrega.consultar', 'cte.consultar', 'mdfe.consultar',
             'fatura.consultar', 'ciot.consultar', 'conta-pagar.consultar',
         ],

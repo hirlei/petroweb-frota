@@ -3,7 +3,7 @@
     $fmt = fn ($v, $d = 2) => number_format((float) $v, $d, ',', '.');
     $fav = $this->favorecido;
     $prev = $this->previa;
-    $cats = collect(config('financeiro.pagar.categorias'))->except('frete_terceiro');
+    $cats = collect(config('financeiro.pagar.categorias'))->except(['frete_terceiro', 'acerto_viagem']);
     $rapidas = config('financeiro.pagar.condicoes_rapidas');
     if ($fav?->prazo_faturamento && ! array_key_exists($condicao, $rapidas)) {
         $rapidas = [$condicao => $condicao . ' dias'] + $rapidas;

@@ -50,8 +50,15 @@ class Index extends Component
     {
         $despesa = Despesa::findOrFail($id);
         $this->authorize('update', $despesa);
+        if ($despesa->travadaPorAcerto()) {
+            session()->flash('erro', 'O acerto desta viagem está fechado (3070).');
+
+            return;
+        }
 
         $despesa->update([
+            'glosada' => false,
+            'motivo_glosa' => null,
             'aprovada' => true,
             'aprovada_por' => Auth::id(),
             'aprovada_em' => now(),
@@ -67,8 +74,13 @@ class Index extends Component
     {
         $despesa = Despesa::findOrFail($id);
         $this->authorize('update', $despesa);
+        if ($despesa->travadaPorAcerto()) {
+            session()->flash('erro', 'O acerto desta viagem está fechado (3070).');
 
-        $despesa->update(['aprovada' => false, 'aprovada_por' => null, 'aprovada_em' => null]);
+            return;
+        }
+
+        $despesa->update(['aprovada' => false, 'aprovada_por' => null, 'aprovada_em' => null, 'glosada' => false, 'motivo_glosa' => null]);
         $despesa->viagem?->recalcularCustosDeDespesas();
 
         session()->flash('sucesso', 'Despesa reaberta — custo da viagem atualizado.');
@@ -83,9 +95,9 @@ class Index extends Component
 
         return [
             'total'        => (clone $base)->count(),
-            'pendentes'    => (clone $base)->where('aprovada', false)->count(),
+            'pendentes'    => (clone $base)->where('aprovada', false)->where('glosada', false)->count(),
             'gasto_mes'    => (float) (clone $base)->where('aprovada', true)->where('data', '>=', $mes)->sum('valor'),
-            'adiantado'    => (float) (clone $base)->where('forma_pagamento', 'adiantamento')->where('aprovada', false)->sum('valor'),
+            'adiantado'    => (float) (clone $base)->where('forma_pagamento', 'adiantamento')->where('aprovada', false)->where('glosada', false)->sum('valor'),
         ];
     }
 
@@ -95,7 +107,7 @@ class Index extends Component
     {
         return Despesa::query()
             ->with(['viagem', 'motorista.pessoa'])
-            ->when($this->situacao === 'pendentes', fn (Builder $q) => $q->where('aprovada', false))
+            ->when($this->situacao === 'pendentes', fn (Builder $q) => $q->where('aprovada', false)->where('glosada', false))
             ->when($this->situacao === 'aprovadas', fn (Builder $q) => $q->where('aprovada', true))
             ->when($this->busca !== '', function (Builder $q): void {
                 $termo = trim($this->busca);

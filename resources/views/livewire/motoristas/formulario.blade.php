@@ -146,7 +146,7 @@
                         <x-input label="Valor por km" type="number" wire:model="valor_por_km" :error="$errors->first('valor_por_km')" />
                     </div>
                     <p class="mt-3 text-xs text-text-muted">
-                        Os três modelos coexistem: diária, comissão sobre o frete e valor por km rodado. Deixe em branco o que não se aplica.
+                        Os três modelos coexistem: diária, comissão sobre o frete e valor por km rodado. Deixe em branco o que não se aplica. Para motorista CLT, a diária e a comissão já vêm preenchidas no acerto de viagem (3070).
                     </p>
                 </div>
             </x-card>

@@ -29,6 +29,7 @@ class Despesa extends Model
         'data'        => 'date',
         'valor'       => 'decimal:2',
         'aprovada'    => 'boolean',
+        'glosada'     => 'boolean',
         'aprovada_em' => 'datetime',
     ];
 
@@ -58,6 +59,18 @@ class Despesa extends Model
         'outros'         => 'custo_outros',
     ];
 
+    /** aceita | glosa | pendente — a conferência do acerto (3070). */
+    public function conferencia(): string
+    {
+        return $this->aprovada ? 'aceita' : ($this->glosada ? 'glosa' : 'pendente');
+    }
+
+    /** Viagem com acerto fechado: a despesa não muda mais. */
+    public function travadaPorAcerto(): bool
+    {
+        return AcertoViagem::query()->where('viagem_id', $this->viagem_id)->where('status', 'fechado')->exists();
+    }
+
     public function componenteCusto(): string
     {
         return self::COMPONENTE_CUSTO[$this->tipo] ?? 'custo_outros';
@@ -83,8 +96,9 @@ class Despesa extends Model
         return $query->where('aprovada', true);
     }
 
+    /** Nem aceita nem glosada — falta conferir. */
     public function scopePendentes(Builder $query): Builder
     {
-        return $query->where('aprovada', false);
+        return $query->where('aprovada', false)->where('glosada', false);
     }
 }

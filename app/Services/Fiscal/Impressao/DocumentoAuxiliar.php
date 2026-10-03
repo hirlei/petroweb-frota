@@ -137,7 +137,7 @@ final class DocumentoAuxiliar
     /* ── auxiliares ── */
 
     /** @return array<string,mixed> */
-    private function emitente(?Filial $f): array
+    public function emitente(?Filial $f): array
     {
         if ($f === null) {
             return ['nome' => '—', 'linhas' => [], 'logo' => null];

@@ -140,7 +140,7 @@
                                             <x-button variant="neutral" size="xs" wire:click="abrirEstorno({{ $c->id }})">Estornar</x-button>
                                         @endcan
                                     @endif
-                                    @if ($c->status === 'aberto' && $c->valor_baixado <= 0 && ! $c->pagaNoCiot())
+                                    @if ($c->status === 'aberto' && $c->valor_baixado <= 0 && ! $c->pagaNoCiot() && $c->origem !== 'acerto')
                                         @can('cancelar', $c)
                                             <button type="button" wire:click="abrirCancelamento({{ $c->id }})" title="Cancelar conta" aria-label="Cancelar conta"
                                                     class="ml-1 inline-flex items-center rounded px-1.5 py-1 text-text-muted hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-500/10 dark:hover:text-red-400"><x-icon name="x" class="h-3.5 w-3.5" /></button>

@@ -6,7 +6,9 @@ use App\Http\Controllers\DocumentoAuxiliarController;
 use App\Http\Controllers\FaturaImpressaoController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\RastreamentoWebhookController;
+use App\Http\Controllers\ReciboAcertoController;
 use App\Livewire\Abastecimentos;
+use App\Livewire\Acertos;
 use App\Livewire\Ciots;
 use App\Livewire\Composicoes;
 use App\Livewire\ContasPagar;
@@ -143,6 +145,14 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/despesas', Despesas\Index::class)->name('despesas.index');
     Route::get('/despesas/nova', Despesas\Formulario::class)->name('despesas.criar');
     Route::get('/despesas/{despesa}', Despesas\Formulario::class)->name('despesas.editar');
+
+    /*
+     * 3070 — Acerto de viagem (motorista CLT): adiantamentos, conferência,
+     * diárias e comissão. Saldo a favor do motorista vira conta no 5030.
+     */
+    Route::get('/acertos', Acertos\Index::class)->name('acertos.index');
+    Route::get('/acertos/{viagem}', Acertos\Acerto::class)->name('acertos.ver');
+    Route::get('/acertos/{viagem}/recibo', ReciboAcertoController::class)->name('acertos.recibo');
 
     /*
      * 3030 — Rotas planejadas.

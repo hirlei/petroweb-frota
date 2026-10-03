@@ -15,6 +15,9 @@
         </x-slot:actions>
     </x-page-header>
 
+    @if (session('erro'))
+        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800/50 dark:bg-red-950/50 dark:text-red-300">{{ session('erro') }}</div>
+    @endif
     @if (session('sucesso'))
         <div class="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800
                     dark:border-green-800/50 dark:bg-green-950/50 dark:text-green-300">
@@ -94,13 +97,15 @@
                                 <td class="px-4 py-3">
                                     @if ($d->aprovada)
                                         <x-badge variant="success" class="text-[10px]">Aprovada</x-badge>
+                                    @elseif ($d->glosada)
+                                        <x-badge variant="danger" class="text-[10px]" title="{{ $d->motivo_glosa }}">Glosada</x-badge>
                                     @else
                                         <x-badge variant="warning" class="text-[10px]">Pendente</x-badge>
                                     @endif
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3 text-right">
                                     @can('update', $d)
-                                        @unless ($d->aprovada)
+                                        @unless ($d->aprovada || $d->glosada)
                                             <button type="button" wire:click="aprovar({{ $d->id }})"
                                                     class="mr-1 inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-success hover:bg-green-50 dark:hover:bg-green-950/40">
                                                 <x-icon name="check" class="h-3.5 w-3.5" /> Aprovar

@@ -26,7 +26,7 @@ class ContaPagarOrigem extends Model
         'ativo' => 'boolean',
     ];
 
-    public const TIPOS = ['abastecimento', 'ordem_servico', 'ciot'];
+    public const TIPOS = ['abastecimento', 'ordem_servico', 'ciot', 'acerto'];
 
     public function conta(): BelongsTo
     {

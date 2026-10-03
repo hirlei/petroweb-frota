@@ -140,6 +140,15 @@ class Formulario extends Component
     {
         $this->validate();
 
+        // Acerto fechado (3070): as despesas da viagem não mudam mais.
+        $travada = \App\Models\AcertoViagem::query()->where('status', 'fechado')
+            ->whereIn('viagem_id', array_filter([$this->viagem_id, $this->despesa?->viagem_id]))->exists();
+        if ($travada) {
+            $this->addError('viagem_id', 'O acerto desta viagem está fechado (3070). Reabra o acerto para mudar despesas.');
+
+            return null;
+        }
+
         $dados = [
             'viagem_id' => $this->viagem_id,
             'motorista_id' => $this->motorista_id,
@@ -150,6 +159,8 @@ class Formulario extends Component
             'origem' => $this->origem,
             'descricao' => trim($this->descricao) !== '' ? trim($this->descricao) : null,
             'aprovada' => $this->aprovada,
+            'glosada' => $this->aprovada ? false : (bool) ($this->despesa?->glosada ?? false),
+            'motivo_glosa' => $this->aprovada ? null : ($this->despesa?->motivo_glosa ?? null),
             'aprovada_por' => $this->aprovada ? ($this->despesa?->aprovada_por ?? Auth::id()) : null,
             'aprovada_em' => $this->aprovada ? ($this->despesa?->aprovada_em ?? now()) : null,
         ];
