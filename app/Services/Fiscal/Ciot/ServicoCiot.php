@@ -241,6 +241,7 @@ final class ServicoCiot
             'cancelado_por' => Auth::id(),
             'motivo_cancelamento' => $motivo,
         ]);
+        app(\App\Services\Financeiro\ContasPagar::class)->cancelarDoCiot($ciot);
 
         return $ciot;
     }
@@ -326,6 +327,20 @@ final class ServicoCiot
                 'status' => $quitado ? 'quitado' : $ciot->status,
                 'quitado_em' => $quitado ? now() : null,
             ]);
+
+            // Conta a pagar do frete (5030), se já lançada, baixa junto.
+            // Depois do commit e sem derrubar nada: o TAC já foi pago; se o espelho
+            // falhar, o pagamento do CIOT fica e o espelho se refaz no próximo.
+            if ($pagamento->status === 'confirmado') {
+                $ciotId = $ciot->id;
+                DB::afterCommit(function () use ($ciotId): void {
+                    try {
+                        app(\App\Services\Financeiro\ContasPagar::class)->espelharPagamentosCiot(Ciot::query()->findOrFail($ciotId));
+                    } catch (\Throwable $e) {
+                        report($e);
+                    }
+                });
+            }
 
             return $pagamento;
         });

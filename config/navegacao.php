@@ -82,6 +82,7 @@ return [
         'items' => [
             ['codigo' => '5010', 'label' => 'Faturas',          'icon' => 'file-text', 'route' => 'faturas.index',        'can' => 'fatura.consultar'],
             ['codigo' => '5020', 'label' => 'Contas a receber', 'icon' => 'wallet',    'route' => 'contas-receber.index', 'can' => 'fatura.consultar'],
+            ['codigo' => '5030', 'label' => 'Contas a pagar',   'icon' => 'wallet',    'route' => 'contas-pagar.index',   'can' => 'conta-pagar.consultar'],
         ],
     ],
     [
