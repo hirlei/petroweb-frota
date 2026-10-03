@@ -165,6 +165,17 @@ a 4060 só mostra a conferência da numeração (`ConferenciaNumeracao`). Export
 disco `fiscal.xml.disco` + `resumo.csv` (";", BOM). Relação ordenada + `count()`/`max()`
 quebra no Postgres: use `reorder()` ou relação sem `orderBy`.
 
+**Custo e margem (3080).** O custo da viagem NÃO se digita: `App\Services\Operacao\CustosDaViagem`
+monta os componentes dos lançamentos ligados (abastecimento → combustível; CIOT ipef/informado →
+terceiro; despesas aceitas → pedágio/motorista/outros; vale-pedágio pago pela transportadora
+(fornecido ou compra) → pedágio; acerto fechado → diárias/comissão, aberto → estimadas pelo
+cadastro do motorista CLT; OS da viagem → manutenção) e grava nas colunas `custo_*` da viagem
+(`saveQuietly`). Componente sem lançamento usa `custos_digitados` (legado). O observer
+`RecalculaCustoDaViagem` agenda o recálculo depois do commit; `viagens:recalcular-custos` roda
+toda noite (cron do `schedule:run`). Cálculo puro em `App\Domain\Operacao\CustoViagem`
+(centavos; rateio por cliente na proporção da receita). A saída da viagem é hora local: o corte
+do mês é o do calendário, sem converter fuso.
+
 **DACTE e DAMDFE (PDF A4).** `App\Services\Fiscal\Impressao\DocumentoAuxiliar` monta
 os dados; o leiaute é `resources/views/fiscal/{dacte,damdfe}.blade.php`, convertido pelo
 **dompdf** — por isso só tabela (sem flex/grid) e imagens como SVG em data URI. Código de

@@ -710,6 +710,8 @@ class DemonstracaoSeeder extends Seeder
                 'custo_motorista' => $mot,
                 'custo_manutencao' => $manut,
                 'custo_outros' => $outros,
+                // Demonstração sem lançamentos: os custos valem como "digitados" (3080).
+                'custos_digitados' => ['combustivel' => $comb, 'pedagio' => $ped, 'motorista' => $mot, 'manutencao' => $manut, 'outros' => $outros],
                 'receita_total' => $receita,
                 'status' => $status,
             ]);

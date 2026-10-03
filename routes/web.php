@@ -15,6 +15,7 @@ use App\Livewire\Composicoes;
 use App\Livewire\ContasPagar;
 use App\Livewire\ContasReceber;
 use App\Livewire\Cte;
+use App\Livewire\CustoMargem;
 use App\Livewire\Despesas;
 use App\Livewire\Entregas;
 use App\Livewire\ExportacaoXml;
@@ -155,6 +156,13 @@ Route::middleware(['tenant', 'auth', 'verified'])->group(function (): void {
     Route::get('/acertos', Acertos\Index::class)->name('acertos.index');
     Route::get('/acertos/{viagem}', Acertos\Acerto::class)->name('acertos.ver');
     Route::get('/acertos/{viagem}/recibo', ReciboAcertoController::class)->name('acertos.recibo');
+
+    /*
+     * 3080 — Custo e margem: custo montado dos lançamentos da viagem
+     * (Services\Operacao\CustosDaViagem), por viagem/veículo/cliente/motorista/rota.
+     */
+    Route::get('/custo-margem', CustoMargem\Index::class)->name('custos.index');
+    Route::get('/custo-margem/{viagem}', CustoMargem\Detalhe::class)->name('custos.ver');
 
     /*
      * 3030 — Rotas planejadas.

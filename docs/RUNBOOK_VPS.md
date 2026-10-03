@@ -213,6 +213,21 @@ Frota, operação, CT-e, MDF-e e vale-pedágio — 27 telas aprovadas.
 | Sem tela de configuração de 2FA | Médio | Sprint de segurança |
 | Senha padrão no seed de demonstração | **Alto se virar uso real** | Ao trocar de demo para piloto |
 
+### Agendador do Laravel — instalar no cron
+
+Rotinas noturnas do Frota (ex.: `viagens:recalcular-custos`, 03h10, que refaz
+custo e margem das viagens — rotina 3080) rodam pelo agendador do Laravel.
+Uma linha no cron basta para todas:
+
+```bash
+( crontab -l 2>/dev/null; \
+  echo "* * * * * cd /var/www/petroweb-frota && php artisan schedule:run >> /dev/null 2>&1" \
+) | crontab -
+
+# Confere o que está agendado
+php artisan schedule:list
+```
+
 ### Backup — instalar no cron
 
 O `backup_producao.sh` da VPS só enxerga o banco do PetroWeb. O

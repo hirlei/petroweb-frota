@@ -43,6 +43,9 @@ class Viagem extends Model
         'custo_motorista'     => 'decimal:2',
         'custo_manutencao'    => 'decimal:2',
         'custo_outros'        => 'decimal:2',
+        'custo_terceiro'      => 'decimal:2',
+        'custos_digitados'    => 'array',
+        'custos_recalculados_em' => 'datetime',
         'custo_total'         => 'decimal:2',
         'receita_total'       => 'decimal:2',
         'margem'              => 'decimal:2',
@@ -86,6 +89,12 @@ class Viagem extends Model
     public function municipioDestino(): BelongsTo
     {
         return $this->belongsTo(Municipio::class, 'municipio_destino_id');
+    }
+
+    /** Abastecimentos lançados na viagem (custo de combustível, 3080). */
+    public function abastecimentos(): HasMany
+    {
+        return $this->hasMany(Abastecimento::class);
     }
 
     public function despesas(): HasMany
@@ -156,34 +165,20 @@ class Viagem extends Model
             ->orderByPivot('sequencia');
     }
 
-    /** Recalcula a receita a partir dos CT-e vinculados e reconsolida a margem. */
+    /** Recalcula a receita a partir dos CT-e vinculados e reconsolida a margem (3080). */
     public function recalcularReceitaDosCtes(): void
     {
-        $this->receita_total = (float) $this->ctes()->sum('valor_total_servico');
-        $this->consolidarCustos();
-        $this->save();
+        app(\App\Services\Operacao\CustosDaViagem::class)->recalcular($this);
     }
 
     /**
-     * Recompõe os custos que vêm das despesas aprovadas (pedágio, motorista,
-     * outros) a partir do que está lançado, deixando combustível e manutenção
-     * como estão (esses vêm de abastecimento e OS). Em seguida consolida total,
-     * margem e custo por km. É o observer de despesa, disparado pelo formulário.
+     * Recompõe custo, receita e margem a partir dos lançamentos da viagem
+     * (rotina 3080 — App\Services\Operacao\CustosDaViagem). O nome ficou por
+     * compatibilidade: despesas, acerto e telas antigas chamam este método.
      */
     public function recalcularCustosDeDespesas(): void
     {
-        $porComponente = $this->despesas()
-            ->where('aprovada', true)
-            ->get(['tipo', 'valor'])
-            ->groupBy(fn (Despesa $d): string => $d->componenteCusto())
-            ->map(fn ($grupo) => (float) $grupo->sum('valor'));
-
-        $this->custo_pedagio = $porComponente->get('custo_pedagio', 0.0);
-        $this->custo_motorista = $porComponente->get('custo_motorista', 0.0);
-        $this->custo_outros = $porComponente->get('custo_outros', 0.0);
-
-        $this->consolidarCustos();
-        $this->save();
+        app(\App\Services\Operacao\CustosDaViagem::class)->recalcular($this);
     }
 
     /**
@@ -196,7 +191,8 @@ class Viagem extends Model
             + (float) $this->custo_pedagio
             + (float) $this->custo_motorista
             + (float) $this->custo_manutencao
-            + (float) $this->custo_outros;
+            + (float) $this->custo_outros
+            + (float) $this->custo_terceiro;
 
         $this->margem = (float) $this->receita_total - (float) $this->custo_total;
 

@@ -62,6 +62,7 @@ return [
             ['codigo' => '3050', 'label' => 'Entregas',         'icon' => 'inbox',     'route' => 'entregas.index',      'can' => 'entrega.consultar'],
             ['codigo' => '3060', 'label' => 'Despesas de viagem', 'icon' => 'ticket',  'route' => 'despesas.index',      'can' => 'despesa-viagem.consultar'],
             ['codigo' => '3070', 'label' => 'Acerto de viagem',   'icon' => 'wallet',  'route' => 'acertos.index',       'can' => 'acerto.consultar'],
+            ['codigo' => '3080', 'label' => 'Custo e margem',     'icon' => 'tag',     'route' => 'custos.index',        'can' => 'custo-viagem.consultar'],
         ],
     ],
     [

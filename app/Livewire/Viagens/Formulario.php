@@ -66,11 +66,6 @@ class Formulario extends Component
     public ?int $cteParaVincular = null;
 
     // Custos denormalizados
-    public string $custo_combustivel = '';
-    public string $custo_pedagio = '';
-    public string $custo_motorista = '';
-    public string $custo_manutencao = '';
-    public string $custo_outros = '';
     public string $receita_total = '';
 
     public string $observacoes = '';
@@ -111,11 +106,6 @@ class Formulario extends Component
         $this->km_final = $this->str($viagem->km_final);
         $this->peso_total = $this->str($viagem->peso_total);
         $this->valor_carga = $this->str($viagem->valor_carga);
-        $this->custo_combustivel = $this->str($viagem->custo_combustivel);
-        $this->custo_pedagio = $this->str($viagem->custo_pedagio);
-        $this->custo_motorista = $this->str($viagem->custo_motorista);
-        $this->custo_manutencao = $this->str($viagem->custo_manutencao);
-        $this->custo_outros = $this->str($viagem->custo_outros);
         $this->receita_total = $this->str($viagem->receita_total);
         $this->observacoes = (string) ($viagem->observacoes ?? '');
     }
@@ -165,17 +155,19 @@ class Formulario extends Component
         $this->municipio_destino_id ??= $rota->municipio_destino_id;
     }
 
-    /** @return array{total:float,margem:float,por_km:?float,percentual:?float} */
+    public function temCtes(): bool
+    {
+        return (bool) $this->viagem?->exists && $this->viagem->ctes()->exists();
+    }
+
+    /** @return array{total:float,margem:float,por_km:?float,percentual:?float,receita:float} */
     #[Computed]
     public function calculo(): array
     {
-        $total = (float) ($this->custo_combustivel ?: 0)
-            + (float) ($this->custo_pedagio ?: 0)
-            + (float) ($this->custo_motorista ?: 0)
-            + (float) ($this->custo_manutencao ?: 0)
-            + (float) ($this->custo_outros ?: 0);
-
-        $receita = (float) ($this->receita_total ?: 0);
+        // Custo vem dos lançamentos (3080), gravado na viagem; a receita só é
+        // digitada quando a viagem não tem CT-e vinculado.
+        $total = (float) ($this->viagem?->custo_total ?? 0);
+        $receita = $this->temCtes() ? (float) $this->viagem->receita_total : (float) ($this->receita_total ?: 0);
         $margem = $receita - $total;
 
         $km = (float) ($this->km_final ?: 0) - (float) ($this->km_inicial ?: 0);
@@ -185,6 +177,7 @@ class Formulario extends Component
             'margem'     => round($margem, 2),
             'por_km'     => $km > 0 ? round($total / $km, 2) : null,
             'percentual' => $receita > 0 ? round($margem / $receita * 100, 1) : null,
+            'receita'    => round($receita, 2),
         ];
     }
 
@@ -263,7 +256,7 @@ class Formulario extends Component
     {
         $this->authorize('update', $this->viagem);
 
-        $seq = (int) ($this->viagem->ctes()->max('sequencia') ?? 0) + 1;
+        $seq = (int) ($this->viagem->ctes()->reorder()->max('sequencia') ?? 0) + 1;
         $this->viagem->ctes()->syncWithoutDetaching([$cteId => ['sequencia' => $seq, 'papel' => 'principal']]);
         $this->viagem->recalcularReceitaDosCtes();
         $this->viagem->refresh();
@@ -384,11 +377,6 @@ class Formulario extends Component
             'km_final' => ['nullable', 'numeric', 'min:0', 'gte:km_inicial'],
             'peso_total' => ['nullable', 'numeric', 'min:0'],
             'valor_carga' => ['nullable', 'numeric', 'min:0'],
-            'custo_combustivel' => ['nullable', 'numeric', 'min:0'],
-            'custo_pedagio' => ['nullable', 'numeric', 'min:0'],
-            'custo_motorista' => ['nullable', 'numeric', 'min:0'],
-            'custo_manutencao' => ['nullable', 'numeric', 'min:0'],
-            'custo_outros' => ['nullable', 'numeric', 'min:0'],
             'receita_total' => ['nullable', 'numeric', 'min:0'],
             'observacoes' => ['nullable', 'string'],
         ];
@@ -433,11 +421,6 @@ class Formulario extends Component
             'km_percorrido' => $kmPercorrido,
             'peso_total' => $this->nuloNum($this->peso_total),
             'valor_carga' => $this->nuloNum($this->valor_carga),
-            'custo_combustivel' => (float) ($this->custo_combustivel ?: 0),
-            'custo_pedagio' => (float) ($this->custo_pedagio ?: 0),
-            'custo_motorista' => (float) ($this->custo_motorista ?: 0),
-            'custo_manutencao' => (float) ($this->custo_manutencao ?: 0),
-            'custo_outros' => (float) ($this->custo_outros ?: 0),
             'receita_total' => (float) ($this->receita_total ?: 0),
             'observacoes' => $this->nulo($this->observacoes),
         ];
@@ -447,8 +430,9 @@ class Formulario extends Component
                 ? tap($this->viagem)->fill($dados)
                 : new Viagem($dados);
 
-            $viagem->consolidarCustos();
             $viagem->save();
+            // Custo, receita e margem vêm dos lançamentos (km e dias mudam a conta).
+            app(\App\Services\Operacao\CustosDaViagem::class)->recalcular($viagem);
 
             $this->viagem = $viagem->fresh();
         });

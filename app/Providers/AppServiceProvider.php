@@ -56,6 +56,18 @@ class AppServiceProvider extends ServiceProvider
         $this->forcarHttps();
         $this->protegerBancoEmProducao();
         $this->rigorEmDesenvolvimento();
+        $this->recalculoDeCustoDaViagem();
+    }
+
+    /** Rotina 3080: lançamento que mexe no custo/receita recalcula a viagem. */
+    private function recalculoDeCustoDaViagem(): void
+    {
+        foreach ([
+            \App\Models\Abastecimento::class, \App\Models\OrdemServico::class, \App\Models\Despesa::class,
+            \App\Models\ValePedagio::class, \App\Models\Ciot::class, \App\Models\AcertoViagem::class, \App\Models\Cte::class,
+        ] as $modelo) {
+            $modelo::observe(\App\Observers\RecalculaCustoDaViagem::class);
+        }
     }
 
     /**

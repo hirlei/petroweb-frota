@@ -113,6 +113,7 @@ class Inicio extends Component
                 'Pedágio' => (float) (clone $q)->sum('custo_pedagio'),
                 'Motorista' => (float) (clone $q)->sum('custo_motorista'),
                 'Manutenção' => (float) (clone $q)->sum('custo_manutencao'),
+                'Terceiros' => (float) (clone $q)->sum('custo_terceiro'),
                 'Outros' => (float) (clone $q)->sum('custo_outros'),
             ];
             arsort($comp);
@@ -211,6 +212,7 @@ class Inicio extends Component
                 'Pedágio' => (float) (clone $q)->sum('custo_pedagio'),
                 'Motorista' => (float) (clone $q)->sum('custo_motorista'),
                 'Manutenção' => (float) (clone $q)->sum('custo_manutencao'),
+                'Terceiros' => (float) (clone $q)->sum('custo_terceiro'),
                 'Outros' => (float) (clone $q)->sum('custo_outros'),
             ];
             arsort($r);
