@@ -109,6 +109,17 @@ class Viagem extends Model
         return $this->hasOne(Ciot::class)->where('status', '<>', 'cancelado');
     }
 
+    public function adiantamentos(): HasMany
+    {
+        return $this->hasMany(Adiantamento::class)->orderBy('data')->orderBy('id');
+    }
+
+    /** O acerto que vale para a viagem (3070) — no máximo um fechado. */
+    public function acerto(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(AcertoViagem::class)->where('status', 'fechado');
+    }
+
     public function valesPedagio(): HasMany
     {
         return $this->hasMany(ValePedagio::class);

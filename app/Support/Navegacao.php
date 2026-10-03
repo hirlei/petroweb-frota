@@ -14,7 +14,9 @@ use App\Models\Ocorrencia;
 use App\Models\OrdemColeta;
 use App\Models\TituloReceber;
 use App\Models\User;
+use App\Models\Viagem;
 use App\Models\VeiculoDocumento;
+use App\Services\Operacao\Acertos;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -213,6 +215,8 @@ final class Navegacao
             ->whereNull('canhoto_path')->whereNull('assinatura_path')->where('tipo_comprovacao', '!=', 'evento_eletronico')->count());
         $conta('3040', 'pendente', '{n} ocorrência(s) aberta(s)', fn () => Ocorrencia::query()->where('status', '!=', 'resolvida')->count());
         $conta('3010', 'pendente', '{n} ordem(ns) de coleta aberta(s)', fn () => OrdemColeta::query()->where('status', 'aberta')->count());
+        $conta('3070', 'pendente', '{n} viagem(ns) entregue(s) sem acerto', fn () => Acertos::acertaveis(Viagem::query())
+            ->whereDoesntHave('acerto')->count());
         $conta('4050', 'urgente', '{n} CIOT recusado(s) ou com saldo vencido',
             fn () => Ciot::query()->where('status', 'recusado')->count() + Ciot::query()->saldoVencido()->count());
         $conta('5030', 'urgente', '{n} conta(s) a pagar vencida(s)', fn () => ContaPagar::query()->vencidas()->count());

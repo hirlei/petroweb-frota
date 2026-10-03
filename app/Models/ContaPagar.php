@@ -43,7 +43,7 @@ class ContaPagar extends Model
 
     public const EM_ABERTO = ['aberto', 'parcial'];
 
-    public const CATEGORIAS = ['combustivel', 'manutencao', 'frete_terceiro', 'pedagio', 'seguro', 'impostos', 'servicos', 'outras'];
+    public const CATEGORIAS = ['combustivel', 'manutencao', 'frete_terceiro', 'acerto_viagem', 'pedagio', 'seguro', 'impostos', 'servicos', 'outras'];
 
     public function favorecido(): BelongsTo
     {

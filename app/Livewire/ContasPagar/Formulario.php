@@ -114,7 +114,7 @@ class Formulario extends Component
 
         $this->validate([
             'favorecido_id' => ['required', 'integer', 'exists:pessoas,id'],
-            'categoria' => ['required', 'in:' . implode(',', array_diff(ContaPagar::CATEGORIAS, ['frete_terceiro']))],
+            'categoria' => ['required', 'in:' . implode(',', array_diff(ContaPagar::CATEGORIAS, ['frete_terceiro', 'acerto_viagem']))],
             'documento' => ['nullable', 'string', 'max:60'],
             'emissao' => ['required', 'date'],
             'valor' => ['required', 'numeric', 'gt:0'],

@@ -215,6 +215,31 @@ final class ContasPagar
         });
     }
 
+    /* ── Acerto de viagem (3070) ── */
+
+    /**
+     * Saldo do acerto a favor do motorista vira conta a pagar.
+     *
+     * @throws ContasPagarException
+     */
+    public function lancarAcerto(\App\Models\AcertoViagem $acerto, Pessoa $motorista, ?string $viagemNumero): ContaPagar
+    {
+        $this->exigirSemConta('acerto', [$acerto->id]);
+
+        return $this->criar(
+            favorecido: $motorista,
+            categoria: 'acerto_viagem',
+            valor: round((float) $acerto->saldo, 2),
+            condicao: (string) config('financeiro.pagar.acerto_prazo', '5'),
+            emissao: Carbon::today(),
+            documento: $viagemNumero,
+            descricao: 'Acerto da viagem ' . $viagemNumero,
+            origem: 'acerto',
+            origens: [['acerto', $acerto->id, (float) $acerto->saldo]],
+            filialId: $acerto->viagem?->filial_id ?? TenantContext::filial()?->id,
+        )->first();
+    }
+
     /* ── Lançamento manual ── */
 
     /**
@@ -224,8 +249,8 @@ final class ContasPagar
      */
     public function lancarManual(Pessoa $favorecido, string $categoria, float $valor, string $condicao, Carbon $emissao, ?string $documento = null, ?string $observacoes = null): Collection
     {
-        if (! in_array($categoria, ContaPagar::CATEGORIAS, true) || $categoria === 'frete_terceiro') {
-            throw new ContasPagarException('Escolha a categoria. Frete de TAC nasce do CIOT, nos lançamentos esperando.');
+        if (! in_array($categoria, ContaPagar::CATEGORIAS, true) || in_array($categoria, ['frete_terceiro', 'acerto_viagem'], true)) {
+            throw new ContasPagarException('Escolha a categoria. Frete de TAC nasce do CIOT e acerto de viagem nasce no 3070.');
         }
         if ($valor <= 0) {
             throw new ContasPagarException('Informe o valor da conta.');
@@ -337,8 +362,11 @@ final class ContasPagar
      *
      * @throws ContasPagarException
      */
-    public function cancelar(ContaPagar $conta, string $motivo): void
+    public function cancelar(ContaPagar $conta, string $motivo, bool $peloAcerto = false): void
     {
+        if ($conta->origem === 'acerto' && ! $peloAcerto) {
+            throw new ContasPagarException('Conta de acerto de viagem: para cancelar, reabra o acerto no 3070.');
+        }
         $motivo = trim($motivo);
         if (mb_strlen($motivo) < 5) {
             throw new ContasPagarException('Escreva o motivo do cancelamento (pelo menos 5 letras).');

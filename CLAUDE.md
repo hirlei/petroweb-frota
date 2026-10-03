@@ -140,6 +140,20 @@ origens. Conta de CIOT não se paga nem estorna aqui: espelha os `ciot_pagamento
 `PagamentoConta` é `contaPagar()` (a coluna `conta` é a conta bancária). Vencimento pelo
 prazo do favorecido (`pessoas.prazo_faturamento`), sem prazo 30 dias.
 
+**Acerto de viagem (3070).** Só motorista CLT (RN-12) — agregado/autônomo são pagos pelo
+CIOT. Toda mudança passa por `App\Services\Operacao\Acertos`; a conta pura é
+`App\Domain\Operacao\CalculoAcerto` (centavos): ficou = adiantado − gasto do adiantamento
+aceito; saldo = bolso aceito + diárias + comissão − ficou (> 0 empresa paga, < 0 motorista
+devolve). Conferência da despesa: `aprovada` = aceita, `glosada` = glosa, nenhum = pendente
+(CHECK impede os dois). Só entram despesas `adiantamento`/`reembolso`. Fecha só viagem
+entregue/encerrada e sem pendentes; um fechado por viagem (índice parcial). Fechado,
+despesas e adiantamentos da viagem travam (adicionar/conferir pegam o `lockForUpdate` da
+viagem, como o fechar). Saldo > 0 vira conta no 5030 (`origem = acerto`), que **não** se
+cancela no 5030 — só reabrindo o acerto, e só sem pagamento. Reabrir marca `reaberto`
+(não apaga). Diária/comissão padrão = `motoristas.valor_diaria`/`percentual_comissao`.
+Fila e bolinha só a partir de `financeiro.acerto.desde`. Recibo: `operacao/recibo-acerto`
+(dompdf, `?html=1`).
+
 **DACTE e DAMDFE (PDF A4).** `App\Services\Fiscal\Impressao\DocumentoAuxiliar` monta
 os dados; o leiaute é `resources/views/fiscal/{dacte,damdfe}.blade.php`, convertido pelo
 **dompdf** — por isso só tabela (sem flex/grid) e imagens como SVG em data URI. Código de

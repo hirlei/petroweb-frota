@@ -28,16 +28,23 @@ return [
     // Sem prazo no cadastro do cliente, a fatura sugere este.
     'condicao_padrao' => '30',
 
+    // ── Acerto de viagem (3070) ──
+    // Viagens que terminaram antes desta data não entram na fila "a acertar"
+    // nem na bolinha do menu (histórico de antes da rotina). Vazio = todas.
+    'acerto' => [
+        'desde' => env('ACERTO_DESDE', '2026-10-01'),
+    ],
+
     // ── Contas a pagar (5030) ──
     'pagar' => [
         // Lançamentos esperando olham só os últimos N dias (não puxa histórico antigo).
         'sugestoes_dias' => (int) env('PAGAR_SUGESTOES_DIAS', 90),
         'categorias' => [
             'combustivel' => 'Combustível', 'manutencao' => 'Manutenção', 'frete_terceiro' => 'Frete de terceiro',
-            'pedagio' => 'Pedágio', 'seguro' => 'Seguro', 'impostos' => 'Impostos', 'servicos' => 'Serviços', 'outras' => 'Outras',
+            'acerto_viagem' => 'Acerto de viagem', 'pedagio' => 'Pedágio', 'seguro' => 'Seguro', 'impostos' => 'Impostos', 'servicos' => 'Serviços', 'outras' => 'Outras',
         ],
         'categoria_cores' => [
-            'combustivel' => 'warning', 'manutencao' => 'info', 'frete_terceiro' => 'success',
+            'combustivel' => 'warning', 'manutencao' => 'info', 'frete_terceiro' => 'success', 'acerto_viagem' => 'primary',
             'pedagio' => 'purple', 'seguro' => 'purple', 'impostos' => 'danger', 'servicos' => 'gray', 'outras' => 'gray',
         ],
         // Chips de filtro da lista.
@@ -46,5 +53,7 @@ return [
             'pix' => 'Pix', 'boleto' => 'Boleto', 'transferencia' => 'Transferência', 'dinheiro' => 'Dinheiro', 'cartao' => 'Cartão',
         ],
         'condicoes_rapidas' => ['0' => 'À vista', '10' => '10 dias', '30' => '30 dias', '30/60/90' => '30/60/90'],
+        // Saldo do acerto de viagem (3070) a favor do motorista vence em N dias.
+        'acerto_prazo' => env('PAGAR_ACERTO_PRAZO', '5'),
     ],
 ];
