@@ -64,6 +64,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasAnyPermission([
             'cte.emitir',
             'cte.cancelar',
+            'cte.corrigir',
             'mdfe.emitir',
             'mdfe.encerrar',
             'certificado.gerenciar',

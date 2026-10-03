@@ -44,6 +44,12 @@ class CtePolicy
         return $usuario->can('cte.cancelar') && $this->mesmaEmpresa($usuario, $cte);
     }
 
+    /** Carta de correção (110110). */
+    public function corrigir(User $usuario, Cte $cte): bool
+    {
+        return $usuario->can('cte.corrigir') && $this->mesmaEmpresa($usuario, $cte);
+    }
+
     private function mesmaEmpresa(User $usuario, Cte $cte): bool
     {
         $empresaAtual = TenantContext::empresaId();

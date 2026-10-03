@@ -1,4 +1,4 @@
-{{-- Rotina 4010 — painel do CT-e: gera da OC, emite e cancela. --}}
+{{-- Rotina 4010 — painel do CT-e: gera da OC, emite, corrige (CC-e) e cancela. --}}
 <div>
     @if (! $cte)
         {{-- Modo: gerar rascunho a partir de uma ordem de coleta --}}
@@ -66,7 +66,8 @@
                         <x-linha-ficha rotulo="Destinatário" :valor="$cte->destinatario?->razao_social ?? '—'" />
                         <x-linha-ficha rotulo="Início" :valor="$cte->municipioInicio?->nome ?? '—'" />
                         <x-linha-ficha rotulo="Fim" :valor="$cte->municipioFim?->nome ?? '—'" />
-                        <x-linha-ficha rotulo="Produto" :valor="$cte->produto_predominante ?? '—'" />
+                        @php $proPredCorrigido = $this->corrigido('infCarga', 'proPred'); @endphp
+                        <x-linha-ficha rotulo="Produto" :valor="($proPredCorrigido ?? $cte->produto_predominante ?? '—') . ($proPredCorrigido !== null ? ' (corrigido por CC-e)' : '')" />
                         <x-linha-ficha rotulo="Peso base" :valor="number_format((float) $cte->peso_bruto, 0, ',', '.') . ' kg'" />
                     </div>
                 </x-card>
@@ -110,15 +111,62 @@
                     </div>
                 </x-card>
 
+                @if ($cte->autorizado() || $this->cceEmitidas > 0)
+                    @php $vig = $this->cceVigentes; $emit = $this->cceEmitidas; @endphp
+                    <x-card padding="none" class="overflow-hidden">
+                        <div class="flex items-center gap-2 border-b border-border px-5 py-3.5"><x-icon name="pencil" class="h-4 w-4 text-text-secondary" /><h2 class="text-sm font-semibold text-text">Carta de correção</h2><span class="ml-auto text-[11px] text-text-muted">Evento 110110</span></div>
+                        <div class="px-5 py-4">
+                            <div class="mb-2 flex items-baseline justify-between gap-2">
+                                <span class="text-[22px] font-semibold tabular-nums text-text">{{ $emit }} <small class="text-xs font-normal text-text-secondary">de {{ \App\Domain\Fiscal\RegrasCce::MAXIMO }}</small></span>
+                                <span class="text-[11.5px] text-text-secondary">{{ $emit > 0 ? 'A próxima substitui esta' : 'Nenhuma ainda' }}</span>
+                            </div>
+                            <div class="mb-3 h-1.5 overflow-hidden rounded-full bg-surface-elevated"><i class="block h-full bg-[var(--h6-azul)]" style="width: {{ min(100, $emit * 100 / \App\Domain\Fiscal\RegrasCce::MAXIMO) }}%"></i></div>
+                            @if ($vig !== [])
+                                <div class="overflow-hidden rounded-[10px] border border-border">
+                                    @foreach ($vig as $c)
+                                        @php $def = \App\Domain\Fiscal\RegrasCce::CATALOGO[\App\Domain\Fiscal\RegrasCce::chaveDoCatalogo($c['grupo'], $c['campo']) ?? ''] ?? null; @endphp
+                                        <div class="flex justify-between gap-3 border-t border-border px-2.5 py-1.5 text-xs first:border-0">
+                                            <span class="text-text-secondary">{{ $def[2] ?? ($c['grupo'] . ' · ' . $c['campo']) }}</span>
+                                            <b class="text-right font-medium text-text">{{ $c['valor'] }}</b>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                            @if ($cte->autorizado() && $emit < \App\Domain\Fiscal\RegrasCce::MAXIMO)
+                                @can('corrigir', $cte)
+                                    <x-button class="mt-2 w-full justify-center" variant="neutral" size="sm" icon="pencil" wire:click="abrirCce">Nova carta de correção</x-button>
+                                @endcan
+                            @endif
+                            <p class="mt-2 text-[11.5px] leading-relaxed text-text-secondary">Não corrige valores, impostos, data de emissão nem quem são o emitente, o tomador, o remetente e o destinatário. Para isso: cancelar e emitir de novo.</p>
+                        </div>
+                    </x-card>
+                @endif
+
                 @if ($cte->autorizado())
+                    @php $ate = $cte->cancelavelAte(); $noPrazo = $cte->noPrazoDeCancelamento(); @endphp
                     <x-card padding="none" class="overflow-hidden">
                         <div class="flex items-center gap-2 border-b border-border px-5 py-3.5"><x-icon name="x" class="h-4 w-4 text-text-secondary" /><h2 class="text-sm font-semibold text-text">Cancelar</h2></div>
                         <div class="px-5 py-4">
-                            <x-input-label>Justificativa (mín. 15 caracteres)</x-input-label>
-                            <textarea wire:model="justificativa" rows="2" class="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"></textarea>
-                            @can('cancelar', $cte)
-                                <x-button class="mt-2 w-full justify-center" variant="danger" size="sm" icon="trash-2" wire:click="cancelar" wire:loading.attr="disabled">Cancelar CT-e (110111)</x-button>
-                            @endcan
+                            @if ($ate)
+                                <div class="mb-3 flex items-center gap-2 rounded-lg px-3 py-2 text-xs {{ $noPrazo ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300' : 'bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-300' }}">
+                                    <x-icon name="clock" class="h-3.5 w-3.5 flex-shrink-0" />
+                                    @if ($noPrazo)
+                                        Pode cancelar até {{ $ate->format('d/m H:i') }} · {{ now()->diffForHumans($ate, ['syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE, 'parts' => 1]) }} restantes
+                                    @else
+                                        Prazo de cancelamento encerrado em {{ $ate->format('d/m/Y H:i') }}
+                                    @endif
+                                </div>
+                            @endif
+                            @if ($noPrazo)
+                                <x-input-label>Justificativa (15 a 255 caracteres)</x-input-label>
+                                <textarea wire:model="justificativa" rows="2" maxlength="255" placeholder="Ex.: Frete lançado para o tomador errado"
+                                          class="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"></textarea>
+                                @can('cancelar', $cte)
+                                    <x-button class="mt-2 w-full justify-center" variant="danger-outline" size="sm" icon="trash-2" wire:click="cancelar" wire:confirm="Cancelar este CT-e na SEFAZ? Não dá para desfazer." wire:loading.attr="disabled">Cancelar CT-e</x-button>
+                                @endcan
+                            @else
+                                <p class="text-xs text-text-secondary">Para mudar valor ou imposto agora, emita um CT-e complementar ou de substituição.</p>
+                            @endif
                         </div>
                     </x-card>
                 @endif
@@ -126,10 +174,18 @@
                 <x-card padding="none" class="overflow-hidden">
                     <div class="flex items-center gap-2 border-b border-border px-5 py-3.5"><x-icon name="clock" class="h-4 w-4 text-text-secondary" /><h2 class="text-sm font-semibold text-text">Eventos</h2></div>
                     <div class="px-5 py-4">
-                        @forelse ($cte->eventos as $ev)
+                        @forelse ($cte->eventos->sortByDesc(fn ($e) => [$e->data_evento, $e->id]) as $ev)
+                            @php $ok = $ev->status === 'registrado'; @endphp
                             <div class="flex items-start gap-2 border-t border-border py-2 text-sm first:border-0">
-                                <x-icon name="check" class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-success" />
-                                <div><div class="font-medium text-text">{{ \App\Models\CteEvento::TIPOS[$ev->tipo_evento] ?? $ev->tipo_evento }}</div><div class="text-xs text-text-muted">{{ $ev->data_evento?->format('d/m/Y H:i') }} · {{ $ev->protocolo }}</div></div>
+                                <x-icon :name="$ok ? 'check' : 'alert-triangle'" class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 {{ $ok ? 'text-success' : 'text-danger' }}" />
+                                <div class="min-w-0">
+                                    <div class="font-medium text-text">{{ \App\Models\CteEvento::TIPOS[$ev->tipo_evento] ?? $ev->tipo_evento }}{{ $ev->tipo_evento === \App\Models\CteEvento::CCE ? ' nº ' . $ev->sequencia : '' }}{{ $ok ? '' : ' — recusada' }}</div>
+                                    <div class="text-xs text-text-muted">{{ $ev->data_evento?->format('d/m/Y H:i') }}{{ $ev->protocolo ? ' · protocolo ' . $ev->protocolo : '' }}{{ $ev->criadoPor ? ' · ' . $ev->criadoPor->name : '' }}</div>
+                                    @unless ($ok)<div class="text-xs text-danger">{{ $ev->codigo_status }} · {{ $ev->motivo_status }}</div>@endunless
+                                    @if ($ok && $ev->tipo_evento === \App\Models\CteEvento::CCE)
+                                        <a href="{{ route('cte.cce', [$cte, $ev]) }}" target="_blank" rel="noopener" class="text-xs font-semibold text-[var(--h6-azul-tx)] hover:underline">Imprimir</a>
+                                    @endif
+                                </div>
                             </div>
                         @empty
                             <p class="text-sm text-text-muted">Nenhum evento ainda.</p>
@@ -138,5 +194,77 @@
                 </x-card>
             </div>
         </div>
+
+        {{-- Nova carta de correção --}}
+        @if ($cceAberta)
+            @php $cat = \App\Domain\Fiscal\RegrasCce::CATALOGO; $vetos = $this->cceVetos; $bloqueado = $vetos !== []; @endphp
+            <div class="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-[rgba(15,26,58,.45)] px-4 pt-[8vh] pb-8" wire:keydown.escape.window="fecharCce">
+                <div class="w-full max-w-3xl rounded-2xl bg-surface p-5 shadow-2xl" role="dialog" aria-modal="true" aria-label="Nova carta de correção">
+                    <h3 class="text-base font-bold text-text">Carta de correção nº {{ $this->cceEmitidas + 1 }}</h3>
+                    <p class="mt-0.5 text-[12.5px] text-text-secondary">CT-e {{ str_pad((string) $cte->numero, 6, '0', STR_PAD_LEFT) }}{{ $this->cceEmitidas > 0 ? ' · substitui a nº ' . $this->cceEmitidas . ', então leva as correções dela junto' : '' }}</p>
+
+                    <div class="mt-3 overflow-x-auto rounded-[10px] border border-border">
+                        <table class="w-full table-fixed text-[12.5px]">
+                            <thead class="bg-surface-elevated">
+                                <tr class="text-left text-[10.5px] font-semibold uppercase tracking-wider text-text-muted">
+                                    <th class="w-[34%] px-2 py-2">Campo</th><th class="w-[24%] px-2 py-2">Como está</th><th class="px-2 py-2">Corrigir para</th><th class="w-8 px-2 py-2"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($cceLinhas as $i => $l)
+                                    @php $erro = $vetos[$i] ?? ($cceErros[$i] ?? null); $vet = isset($vetos[$i]); @endphp
+                                    <tr class="border-t border-border align-top {{ $vet ? 'bg-red-50 dark:bg-red-950/30' : '' }}" wire:key="cce-{{ $i }}">
+                                        <td class="px-2 py-2">
+                                            <select wire:model.live="cceLinhas.{{ $i }}.chave" class="w-full rounded-md border border-border bg-white px-2 py-1.5 text-[12.5px] text-text dark:bg-surface-elevated">
+                                                <option value="">Escolha…</option>
+                                                @foreach ($cat as $chave => $def)
+                                                    <option value="{{ $chave }}">{{ $def[2] }}</option>
+                                                @endforeach
+                                                <option value="outro">Outro campo (tag do XML)</option>
+                                            </select>
+                                            @if (($l['chave'] ?? '') === 'outro')
+                                                <div class="mt-1.5 grid grid-cols-2 gap-1.5">
+                                                    <input type="text" wire:model.live.debounce.400ms="cceLinhas.{{ $i }}.grupo" placeholder="Grupo (ex.: compl)" maxlength="20" class="w-full rounded-md border border-border bg-white px-2 py-1 font-mono text-[11.5px] dark:bg-surface-elevated">
+                                                    <input type="text" wire:model.live.debounce.400ms="cceLinhas.{{ $i }}.campo" placeholder="Campo (ex.: xObs)" maxlength="20" class="w-full rounded-md border border-border bg-white px-2 py-1 font-mono text-[11.5px] dark:bg-surface-elevated">
+                                                </div>
+                                            @endif
+                                            <small class="mt-1 block text-[11px] text-text-secondary">
+                                                {{ ($l['grupo'] ?? '') !== '' ? $l['grupo'] . ' · ' . $l['campo'] : '' }}
+                                                @if (! empty($l['origem']))<span class="ml-1 rounded-full bg-gray-100 px-1.5 text-[10px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">Da CC-e {{ $this->cceEmitidas }}</span>@endif
+                                            </small>
+                                        </td>
+                                        <td class="break-words px-2 py-2 text-text-secondary">{{ isset($cat[$l['chave'] ?? '']) ? ($this->valorAtual($l['chave']) ?? '—') : '—' }}</td>
+                                        <td class="px-2 py-2">
+                                            <input type="text" wire:model.blur="cceLinhas.{{ $i }}.valor" maxlength="2000"
+                                                   class="w-full rounded-md border bg-white px-2 py-1.5 text-[12.5px] text-text dark:bg-surface-elevated {{ $erro ? 'border-red-300 dark:border-red-500/50' : 'border-border' }}">
+                                            @if ($erro)<p class="mt-1 text-[11.5px] leading-snug text-red-700 dark:text-red-300">{{ $erro }}@if ($vet) Para isso: cancele e emita de novo{{ $cte->noPrazoDeCancelamento() && $cte->cancelavelAte() ? ' (até ' . $cte->cancelavelAte()->format('d/m H:i') . ')' : '' }} ou emita um CT-e complementar.@endif</p>@endif
+                                        </td>
+                                        <td class="px-2 py-2 text-center">
+                                            <button type="button" wire:click="removerLinhaCce({{ $i }})" aria-label="Tirar a linha" class="text-text-muted hover:text-danger"><x-icon name="x" class="h-4 w-4" /></button>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" wire:click="adicionarLinhaCce" class="mt-2.5 text-xs font-semibold text-[var(--h6-azul-tx)] hover:underline">+ Adicionar correção</button>
+
+                    <details class="mt-3 text-[11.5px] text-text-secondary">
+                        <summary class="cursor-pointer font-semibold text-text">Condição de uso que vai no XML</summary>
+                        <p class="mt-1.5 leading-relaxed">{{ \App\Domain\Fiscal\RegrasCce::CONDICAO_USO }}</p>
+                    </details>
+
+                    @if (isset($cceErros['_']))
+                        <div class="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800 dark:bg-red-950/40 dark:text-red-300">{{ $cceErros['_'] }}</div>
+                    @endif
+
+                    <div class="mt-5 flex items-center justify-end gap-2">
+                        @if ($bloqueado)<span class="mr-auto text-[11.5px] text-text-secondary">Tire a linha bloqueada para transmitir.</span>@endif
+                        <x-button variant="neutral" size="sm" wire:click="fecharCce">Cancelar</x-button>
+                        <x-button variant="primary" size="sm" icon="check" wire:click="transmitirCce" wire:loading.attr="disabled" :disabled="$bloqueado">Transmitir carta de correção</x-button>
+                    </div>
+                </div>
+            </div>
+        @endif
     @endif
 </div>

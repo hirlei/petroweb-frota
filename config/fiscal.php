@@ -26,6 +26,9 @@ return [
             'autorizado' => 'success', 'rejeitado' => 'danger', 'denegado' => 'danger',
             'cancelado' => 'gray', 'contingencia' => 'warning',
         ],
+        // Prazo do cancelamento contado da autorização (usualmente 168h —
+        // confirmar na UF). Vazio = sem trava no sistema (a SEFAZ decide).
+        'cancelamento_horas' => env('CTE_CANCELAMENTO_HORAS', 168),
         'tomadores' => [0 => 'Remetente', 1 => 'Expedidor', 2 => 'Recebedor', 3 => 'Destinatário', 4 => 'Outros'],
         // Situação tributária do ICMS no DACTE.
         'cst' => [
@@ -47,6 +50,16 @@ return [
     ],
 
     'ambientes' => [1 => 'Produção', 2 => 'Homologação'],
+
+    // Fuso do calendário fiscal (corte do mês na 4060). O banco fica em UTC.
+    'fuso' => env('FISCAL_FUSO', 'America/Sao_Paulo'),
+
+    // Onde ficam os XML autorizados (xml_path dos documentos e eventos) e os
+    // ZIP da rotina 4060.
+    'xml' => [
+        'disco' => env('FISCAL_XML_DISCO', 'local'),
+        'exportacoes' => 'exportacoes-xml',
+    ],
 
     // URL de consulta do QR Code do DACTE/DAMDFE quando a SEFAZ não devolver o
     // texto pronto (qrCodCTe / qrCodMDFe). Padrão: portal da SVRS.

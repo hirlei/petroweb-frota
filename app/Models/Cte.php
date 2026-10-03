@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * CT-e (rotina 4010) — modelo 57.
@@ -149,6 +150,31 @@ class Cte extends Model
     public function autorizado(): bool
     {
         return $this->status === 'autorizado';
+    }
+
+    /** Limite do cancelamento (null = sem prazo configurado ou sem autorização). */
+    public function cancelavelAte(): ?Carbon
+    {
+        $horas = config('fiscal.cte.cancelamento_horas');
+        if ($horas === null || $horas === '' || $this->data_autorizacao === null) {
+            return null;
+        }
+
+        return $this->data_autorizacao->copy()->addHours((int) $horas);
+    }
+
+    public function noPrazoDeCancelamento(): bool
+    {
+        $ate = $this->cancelavelAte();
+
+        return $ate === null || now()->lessThanOrEqualTo($ate);
+    }
+
+    /** CC-e registradas (sem ORDER BY: count/max no Postgres não aceitam). */
+    public function cartasCorrecao(): HasMany
+    {
+        return $this->hasMany(CteEvento::class)->where('tipo_evento', CteEvento::CCE)
+            ->where('status', 'registrado');
     }
 
     public function editavel(): bool

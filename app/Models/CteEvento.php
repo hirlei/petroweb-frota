@@ -24,6 +24,9 @@ class CteEvento extends Model
         'sequencia' => 'integer',
     ];
 
+    public const CCE = '110110';
+    public const CANCELAMENTO = '110111';
+
     public const TIPOS = [
         '110110' => 'Carta de Correção',
         '110111' => 'Cancelamento',
@@ -41,5 +44,10 @@ class CteEvento extends Model
     public function cte(): BelongsTo
     {
         return $this->belongsTo(Cte::class);
+    }
+
+    public function criadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'criado_por');
     }
 }
